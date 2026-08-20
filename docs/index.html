@@ -1,0 +1,1671 @@
+<title>Faire × Shopify 每日经营看板</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f1; --surface: #ffffff; --surface-2: #eeece7;
+    --ink: #232032; --ink-dim: #6b6577; --border: #e2dfd8;
+    --accent: #9a3b49; --accent-soft: #f3e3e0;
+    --accent-2: #3b6e63; --accent-2-soft: #e2ece8;
+    --shop: #b8862e; --shop-soft: #f5ecd9;
+    --good: #3f8a5b; --good-soft: #e4f0e7;
+    --pending: #9c9484; --pending-soft: #ece9e1;
+    --critical: #b23a3a;
+    --shadow: 0 1px 2px rgba(35,32,50,0.04), 0 8px 24px rgba(35,32,50,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1922; --surface: #242130; --surface-2: #2c2939;
+      --ink: #ede9e3; --ink-dim: #a79fb0; --border: #383349;
+      --accent: #e08d97; --accent-soft: #3a2429;
+      --accent-2: #7fc0af; --accent-2-soft: #223330;
+      --shop: #d9ac5c; --shop-soft: #3a3121;
+      --good: #6fbb8b; --good-soft: #1f3327;
+      --pending: #b3a998; --pending-soft: #2e2b25;
+      --critical: #e18787;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1922; --surface: #242130; --surface-2: #2c2939;
+    --ink: #ede9e3; --ink-dim: #a79fb0; --border: #383349;
+    --accent: #e08d97; --accent-soft: #3a2429;
+    --accent-2: #7fc0af; --accent-2-soft: #223330;
+    --shop: #d9ac5c; --shop-soft: #3a3121;
+    --good: #6fbb8b; --good-soft: #1f3327;
+    --pending: #b3a998; --pending-soft: #2e2b25;
+    --critical: #e18787;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5;
+    padding: 32px clamp(16px, 4vw, 48px) 64px;
+  }
+  h1, h2 { font-family: "Fraunces", Georgia, serif; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+  .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right; }
+  header.page { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px 24px; margin-bottom: 28px; }
+  header.page h1 { font-size: 28px; font-weight: 600; }
+  header.page .sub { color: var(--ink-dim); font-size: 13px; }
+  section { margin-bottom: 32px; }
+  .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-dim); margin: 0 0 12px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .kpi .label { font-size: 12px; color: var(--ink-dim); margin-bottom: 6px; }
+  .kpi .value { font-family: "IBM Plex Mono", monospace; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .kpi .value.accent { color: var(--accent); }
+  .kpi .foot { font-size: 11.5px; color: var(--ink-dim); margin-top: 4px; }
+  .two-col { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+  .chart-card, .panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .chart-card .title, .panel-card .title { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+  .trend-svg { width: 100%; height: 200px; display: block; }
+  .axis-line { stroke: var(--border); stroke-width: 1; }
+  .trend-line { fill: none; stroke-width: 2; }
+  .legend { display: flex; gap: 16px; font-size: 11.5px; color: var(--ink-dim); margin-top: 8px; }
+  .legend span.dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }
+  .hbar-row { display: grid; grid-template-columns: 70px 1fr; row-gap: 2px; align-items: center; margin-bottom: 14px; }
+  .hbar-label { font-size: 12.5px; color: var(--ink-dim); }
+  .hbar-track { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--surface-2); }
+  .hbar-seg { height: 100%; }
+  .hbar-values { grid-column: 2; font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead tr.group th { font-size: 11.5px; font-weight: 600; letter-spacing: .03em; text-align: center; padding: 7px; border-bottom: 1px solid var(--border); }
+  thead tr.group th.grp-head { color: white; }
+  thead tr.group th.grp-head-faire { background: var(--accent-2); }
+  thead tr.group th.grp-head-shop { background: var(--shop); }
+  thead tr.group th.grp-head-total { background: var(--ink); }
+  thead tr.cols th { position: sticky; top: 0; background: var(--surface-2); text-align: right; font-weight: 500; color: var(--ink-dim); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  thead tr.cols th.c-date { text-align: left; }
+  thead tr.cols th.grp-faire { background: var(--accent-2-soft); }
+  thead tr.cols th.grp-shop { background: var(--shop-soft); }
+  thead tr.cols th.grp-total { background: var(--surface-2); }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td.c-date { font-family: "IBM Plex Mono", monospace; color: var(--ink-dim); }
+  td.grp-faire { background: color-mix(in srgb, var(--accent-2-soft) 55%, transparent); }
+  td.grp-shop { background: color-mix(in srgb, var(--shop-soft) 55%, transparent); }
+  td.grp-total { background: color-mix(in srgb, var(--surface-2) 65%, transparent); }
+  td.strong { font-weight: 600; }
+  td.accent { font-weight: 600; color: var(--accent); }
+  tbody tr:last-child td { border-bottom: none; }
+  tr.row-empty td { color: var(--pending); }
+  tfoot .totals-row td { font-weight: 600; border-top: 2px solid var(--ink-dim); border-bottom: 1px solid var(--border); }
+  tfoot .avg-row td { color: var(--ink-dim); font-weight: 400; font-style: italic; }
+  .notes { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); font-size: 12.5px; color: var(--ink-dim); }
+  .notes ul { margin: 8px 0 0; padding-left: 18px; }
+  .notes li { margin-bottom: 4px; }
+  .notes code { font-family: "IBM Plex Mono", monospace; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+</style>
+
+<header class="page">
+  <div>
+    <h1>Faire × Shopify 每日经营看板</h1>
+    <div class="sub">统计区间 2026-07-01 – 2026-08-18（49 天）· 生成时间 2026-08-20 08:51 UTC</div>
+  </div>
+</header>
+
+<section>
+  <p class="section-title">合计（49 天）</p>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="label">净收入（Faire 回款 + Shopify 销售额）</div>
+      <div class="value accent">$67,840.68</div>
+      <div class="foot">日均 $1,384.50</div>
+    </div>
+    <div class="kpi">
+      <div class="label">合计毛利</div>
+      <div class="value">$9,643.10</div>
+      <div class="foot">毛利率 14.2% · 日均 $196.80</div>
+    </div>
+    <div class="kpi">
+      <div class="label">订单 / 客单价</div>
+      <div class="value">522 单</div>
+      <div class="foot">客单价 $129.96</div>
+    </div>
+    <div class="kpi">
+      <div class="label">广告花费合计</div>
+      <div class="value">$19,126.09</div>
+      <div class="foot">TACOS 28.2%</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Faire 回款 / 毛利</div>
+      <div class="value">$48,757.00</div>
+      <div class="foot">毛利 $9,000.32 · 占总毛利 93.3%</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Shopify GMV / 毛利</div>
+      <div class="value">$19,083.68</div>
+      <div class="foot">毛利 $642.78 · 占总毛利 6.7%</div>
+    </div>
+  </div>
+</section>
+
+<section class="two-col">
+  <div class="chart-card">
+    <div class="title">每日净收入构成（柱）与合计毛利（线）</div>
+    <svg viewBox="0 0 740 200" class="trend-svg" preserveAspectRatio="none" role="img">
+  <line x1="8" y1="192" x2="732" y2="192" class="axis-line" />
+  <rect x="3.4" y="151.3" width="9.2" height="40.7" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="18.5" y="159.4" width="9.2" height="32.6" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="33.6" y="175.9" width="9.2" height="16.1" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="48.7" y="190.3" width="9.2" height="1.7" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="63.8" y="188.8" width="9.2" height="3.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="78.8" y="186.0" width="9.2" height="6.0" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="93.9" y="144.1" width="9.2" height="47.9" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="109.0" y="160.0" width="9.2" height="32.0" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="124.1" y="175.0" width="9.2" height="17.0" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="139.2" y="157.8" width="9.2" height="34.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="154.3" y="165.1" width="9.2" height="26.9" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="169.3" y="156.4" width="9.2" height="35.6" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="184.4" y="192.0" width="9.2" height="0.0" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="199.5" y="167.4" width="9.2" height="24.6" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="214.6" y="158.8" width="9.2" height="33.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="229.7" y="149.9" width="9.2" height="42.1" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="244.8" y="177.8" width="9.2" height="14.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="259.8" y="184.6" width="9.2" height="7.4" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="274.9" y="182.6" width="9.2" height="9.4" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="290.0" y="136.8" width="9.2" height="55.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="305.1" y="64.6" width="9.2" height="127.4" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="320.2" y="93.4" width="9.2" height="98.6" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="335.3" y="59.5" width="9.2" height="132.5" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="350.3" y="88.6" width="9.2" height="103.4" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="365.4" y="156.6" width="9.2" height="35.4" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="380.5" y="169.3" width="9.2" height="22.7" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="395.6" y="156.4" width="9.2" height="35.6" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="410.7" y="131.3" width="9.2" height="60.7" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="425.8" y="145.3" width="9.2" height="46.7" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="440.8" y="162.8" width="9.2" height="29.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="455.9" y="145.2" width="9.2" height="46.8" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="471.0" y="138.5" width="9.2" height="53.5" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="486.1" y="165.0" width="9.2" height="27.0" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="501.2" y="150.2" width="9.2" height="41.8" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="516.3" y="133.3" width="9.2" height="58.7" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="531.3" y="153.8" width="9.2" height="38.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="546.4" y="162.8" width="9.2" height="29.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="561.5" y="151.1" width="9.2" height="40.9" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="576.6" y="172.8" width="9.2" height="19.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="591.7" y="145.7" width="9.2" height="46.3" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="606.8" y="164.7" width="9.2" height="27.3" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="621.8" y="138.6" width="9.2" height="53.4" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="636.9" y="172.1" width="9.2" height="19.9" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="652.0" y="136.3" width="9.2" height="55.7" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="667.1" y="115.2" width="9.2" height="76.8" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="682.2" y="142.0" width="9.2" height="50.0" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="697.3" y="144.8" width="9.2" height="47.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="712.3" y="172.8" width="9.2" height="19.2" rx="2" fill="var(--accent-2)" opacity="0.75" /><rect x="727.4" y="152.6" width="9.2" height="39.4" rx="2" fill="var(--accent-2)" opacity="0.75" />
+  <path d="M 8.0 65.4 L 23.1 117.9 L 38.2 127.0 L 53.2 151.6 L 68.3 156.1 L 83.4 140.8 L 98.5 89.0 L 113.6 84.8 L 128.7 138.8 L 143.8 97.5 L 158.8 112.5 L 173.9 102.1 L 189.0 160.6 L 204.1 134.5 L 219.2 109.7 L 234.2 125.3 L 249.3 185.6 L 264.4 192.0 L 279.5 189.7 L 294.6 186.6 L 309.7 160.6 L 324.8 170.5 L 339.8 62.8 L 354.9 79.8 L 370.0 129.0 L 385.1 160.6 L 400.2 136.8 L 415.2 93.7 L 430.3 126.9 L 445.4 143.6 L 460.5 99.6 L 475.6 88.3 L 490.7 127.0 L 505.8 105.7 L 520.8 80.2 L 535.9 117.3 L 551.0 129.3 L 566.1 115.8 L 581.2 167.7 L 596.2 124.0 L 611.3 137.4 L 626.4 54.5 L 641.5 171.0 L 656.6 47.7 L 671.7 8.0 L 686.8 59.7 L 701.8 107.1 L 716.9 173.6 L 732.0 105.0" class="trend-line" style="stroke:var(--accent)" />
+  <circle cx="8.0" cy="65.4" r="2.4" fill="var(--accent)" />
+<circle cx="23.1" cy="117.9" r="2.4" fill="var(--accent)" />
+<circle cx="38.2" cy="127.0" r="2.4" fill="var(--accent)" />
+<circle cx="53.2" cy="151.6" r="2.4" fill="var(--accent)" />
+<circle cx="68.3" cy="156.1" r="2.4" fill="var(--accent)" />
+<circle cx="83.4" cy="140.8" r="2.4" fill="var(--accent)" />
+<circle cx="98.5" cy="89.0" r="2.4" fill="var(--accent)" />
+<circle cx="113.6" cy="84.8" r="2.4" fill="var(--accent)" />
+<circle cx="128.7" cy="138.8" r="2.4" fill="var(--accent)" />
+<circle cx="143.8" cy="97.5" r="2.4" fill="var(--accent)" />
+<circle cx="158.8" cy="112.5" r="2.4" fill="var(--accent)" />
+<circle cx="173.9" cy="102.1" r="2.4" fill="var(--accent)" />
+<circle cx="189.0" cy="160.6" r="2.4" fill="var(--accent)" />
+<circle cx="204.1" cy="134.5" r="2.4" fill="var(--accent)" />
+<circle cx="219.2" cy="109.7" r="2.4" fill="var(--accent)" />
+<circle cx="234.2" cy="125.3" r="2.4" fill="var(--accent)" />
+<circle cx="249.3" cy="185.6" r="2.4" fill="var(--accent)" />
+<circle cx="264.4" cy="192.0" r="2.4" fill="var(--accent)" />
+<circle cx="279.5" cy="189.7" r="2.4" fill="var(--accent)" />
+<circle cx="294.6" cy="186.6" r="2.4" fill="var(--accent)" />
+<circle cx="309.7" cy="160.6" r="2.4" fill="var(--accent)" />
+<circle cx="324.8" cy="170.5" r="2.4" fill="var(--accent)" />
+<circle cx="339.8" cy="62.8" r="2.4" fill="var(--accent)" />
+<circle cx="354.9" cy="79.8" r="2.4" fill="var(--accent)" />
+<circle cx="370.0" cy="129.0" r="2.4" fill="var(--accent)" />
+<circle cx="385.1" cy="160.6" r="2.4" fill="var(--accent)" />
+<circle cx="400.2" cy="136.8" r="2.4" fill="var(--accent)" />
+<circle cx="415.2" cy="93.7" r="2.4" fill="var(--accent)" />
+<circle cx="430.3" cy="126.9" r="2.4" fill="var(--accent)" />
+<circle cx="445.4" cy="143.6" r="2.4" fill="var(--accent)" />
+<circle cx="460.5" cy="99.6" r="2.4" fill="var(--accent)" />
+<circle cx="475.6" cy="88.3" r="2.4" fill="var(--accent)" />
+<circle cx="490.7" cy="127.0" r="2.4" fill="var(--accent)" />
+<circle cx="505.8" cy="105.7" r="2.4" fill="var(--accent)" />
+<circle cx="520.8" cy="80.2" r="2.4" fill="var(--accent)" />
+<circle cx="535.9" cy="117.3" r="2.4" fill="var(--accent)" />
+<circle cx="551.0" cy="129.3" r="2.4" fill="var(--accent)" />
+<circle cx="566.1" cy="115.8" r="2.4" fill="var(--accent)" />
+<circle cx="581.2" cy="167.7" r="2.4" fill="var(--accent)" />
+<circle cx="596.2" cy="124.0" r="2.4" fill="var(--accent)" />
+<circle cx="611.3" cy="137.4" r="2.4" fill="var(--accent)" />
+<circle cx="626.4" cy="54.5" r="2.4" fill="var(--accent)" />
+<circle cx="641.5" cy="171.0" r="2.4" fill="var(--accent)" />
+<circle cx="656.6" cy="47.7" r="2.4" fill="var(--accent)" />
+<circle cx="671.7" cy="8.0" r="2.4" fill="var(--accent)" />
+<circle cx="686.8" cy="59.7" r="2.4" fill="var(--accent)" />
+<circle cx="701.8" cy="107.1" r="2.4" fill="var(--accent)" />
+<circle cx="716.9" cy="173.6" r="2.4" fill="var(--accent)" />
+<circle cx="732.0" cy="105.0" r="2.4" fill="var(--accent)" />
+</svg>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--accent-2)"></span>净收入 (Faire 回款 + Shopify 销售额)</span>
+      <span><span class="dot" style="background:var(--accent)"></span>合计毛利</span>
+    </div>
+  </div>
+  <div class="panel-card">
+    <div class="title">两平台贡献对比</div>
+    <div class="hbar-row">
+      <div class="hbar-label">净收入</div>
+      <div class="hbar-track">
+        <div class="hbar-seg" style="width:71.9%;background:var(--accent)"></div>
+        <div class="hbar-seg" style="width:28.1%;background:var(--accent-2)"></div>
+      </div>
+      <div class="hbar-values"><span style="color:var(--accent)">Faire $48,757.00</span> · <span style="color:var(--accent-2)">Shopify $19,083.68</span></div>
+    </div>
+<div class="hbar-row">
+      <div class="hbar-label">毛利</div>
+      <div class="hbar-track">
+        <div class="hbar-seg" style="width:93.3%;background:var(--accent)"></div>
+        <div class="hbar-seg" style="width:6.7%;background:var(--accent-2)"></div>
+      </div>
+      <div class="hbar-values"><span style="color:var(--accent)">Faire $9,000.32</span> · <span style="color:var(--accent-2)">Shopify $642.78</span></div>
+    </div>
+<div class="hbar-row">
+      <div class="hbar-label">订单数</div>
+      <div class="hbar-track">
+        <div class="hbar-seg" style="width:49.8%;background:var(--accent)"></div>
+        <div class="hbar-seg" style="width:50.2%;background:var(--accent-2)"></div>
+      </div>
+      <div class="hbar-values"><span style="color:var(--accent)">Faire 260</span> · <span style="color:var(--accent-2)">Shopify 262</span></div>
+    </div>
+<div class="hbar-row">
+      <div class="hbar-label">广告花费</div>
+      <div class="hbar-track">
+        <div class="hbar-seg" style="width:46.5%;background:var(--accent)"></div>
+        <div class="hbar-seg" style="width:53.5%;background:var(--accent-2)"></div>
+      </div>
+      <div class="hbar-values"><span style="color:var(--accent)">Faire $8,889.64</span> · <span style="color:var(--accent-2)">Shopify $10,236.45</span></div>
+    </div>
+    <div class="hbar-row">
+      <div class="hbar-label">Shopify 广告花费：Meta vs Google</div>
+      <div class="hbar-track">
+        <div class="hbar-seg" style="width:90.3%;background:var(--accent)"></div>
+        <div class="hbar-seg" style="width:9.7%;background:var(--accent-2)"></div>
+      </div>
+      <div class="hbar-values"><span style="color:var(--accent)">Meta $9,241.24</span> · <span style="color:var(--accent-2)">Google $995.21</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="section-title">双平台每日明细（2026-07-01 – 2026-08-18）</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr class="group">
+          <th></th>
+          <th colspan="11" class="grp-head grp-head-faire">Faire（批发）</th>
+          <th colspan="8" class="grp-head grp-head-shop">Shopify（独立站）</th>
+          <th colspan="5" class="grp-head grp-head-total">合计（双平台）</th>
+        </tr>
+        <tr class="cols">
+          <th class="c-date">日期</th>
+          <th class="grp-faire">批发GMV</th><th class="grp-faire">实际回款</th><th class="grp-faire">广告(分摊)</th><th class="grp-faire">毛利</th><th class="grp-faire">订单</th><th class="grp-faire">新客</th><th class="grp-faire">复购</th><th class="grp-faire">PV</th><th class="grp-faire">客单价</th><th class="grp-faire">ROAS</th><th class="grp-faire">TACOS</th>
+          <th class="grp-shop">销售额GMV</th><th class="grp-shop">Meta广告</th><th class="grp-shop">Google广告</th><th class="grp-shop">毛利</th><th class="grp-shop">订单</th><th class="grp-shop">访客</th><th class="grp-shop">客单价</th><th class="grp-shop">ROAS</th>
+          <th class="grp-total">净收入</th><th class="grp-total">毛利</th><th class="grp-total">毛利率</th><th class="grp-total">订单</th><th class="grp-total">客单价</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr class="">
+          <td class="c-date">2026-07-01</td>
+          <td class="num grp-faire">$1,658.00</td>
+          <td class="num grp-faire">$1,286.76</td>
+          <td class="num grp-faire">$227.73</td>
+          <td class="num grp-faire strong">$387.53</td>
+          <td class="num grp-faire">7</td>
+          <td class="num grp-faire">7</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">75</td>
+          <td class="num grp-faire">$236.86</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$119.84</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$90.79</td>
+          <td class="num grp-shop">2</td>
+          <td class="num grp-shop">456</td>
+          <td class="num grp-shop">$59.92</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,406.60</td>
+          <td class="num grp-total accent">$478.32</td>
+          <td class="num grp-total">34.0%</td>
+          <td class="num grp-total">9</td>
+          <td class="num grp-total">$156.29</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-02</td>
+          <td class="num grp-faire">$1,504.00</td>
+          <td class="num grp-faire">$1,125.71</td>
+          <td class="num grp-faire">$206.57</td>
+          <td class="num grp-faire strong">$214.64</td>
+          <td class="num grp-faire">8</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">86</td>
+          <td class="num grp-faire">$188.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">55</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,125.71</td>
+          <td class="num grp-total accent">$214.64</td>
+          <td class="num grp-total">19.1%</td>
+          <td class="num grp-total">8</td>
+          <td class="num grp-total">$140.71</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-03</td>
+          <td class="num grp-faire">$704.00</td>
+          <td class="num grp-faire">$557.72</td>
+          <td class="num grp-faire">$96.69</td>
+          <td class="num grp-faire strong">$169.03</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">61</td>
+          <td class="num grp-faire">$234.67</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">87</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$557.72</td>
+          <td class="num grp-total accent">$169.03</td>
+          <td class="num grp-total">30.3%</td>
+          <td class="num grp-total">3</td>
+          <td class="num grp-total">$185.91</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-04</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire strong">$0.00</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">82</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-shop">$59.99</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$45.04</td>
+          <td class="num grp-shop">1</td>
+          <td class="num grp-shop">64</td>
+          <td class="num grp-shop">$59.99</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$59.99</td>
+          <td class="num grp-total accent">$45.04</td>
+          <td class="num grp-total">75.1%</td>
+          <td class="num grp-total">1</td>
+          <td class="num grp-total">$59.99</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-05</td>
+          <td class="num grp-faire">$160.00</td>
+          <td class="num grp-faire">$111.43</td>
+          <td class="num grp-faire">$21.98</td>
+          <td class="num grp-faire strong">$22.45</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">57</td>
+          <td class="num grp-faire">$160.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">53</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$111.43</td>
+          <td class="num grp-total accent">$22.45</td>
+          <td class="num grp-total">20.1%</td>
+          <td class="num grp-total">1</td>
+          <td class="num grp-total">$111.43</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-06</td>
+          <td class="num grp-faire">$156.00</td>
+          <td class="num grp-faire">$118.56</td>
+          <td class="num grp-faire">$21.43</td>
+          <td class="num grp-faire strong">$34.13</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">110</td>
+          <td class="num grp-faire">$156.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$88.46</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$65.21</td>
+          <td class="num grp-shop">2</td>
+          <td class="num grp-shop">111</td>
+          <td class="num grp-shop">$44.23</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$207.02</td>
+          <td class="num grp-total accent">$99.34</td>
+          <td class="num grp-total">48.0%</td>
+          <td class="num grp-total">3</td>
+          <td class="num grp-total">$69.01</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-07</td>
+          <td class="num grp-faire">$2,451.00</td>
+          <td class="num grp-faire">$1,656.52</td>
+          <td class="num grp-faire">$336.64</td>
+          <td class="num grp-faire strong">$359.63</td>
+          <td class="num grp-faire">15</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">114</td>
+          <td class="num grp-faire">$163.40</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">96</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,656.52</td>
+          <td class="num grp-total accent">$359.63</td>
+          <td class="num grp-total">21.7%</td>
+          <td class="num grp-total">15</td>
+          <td class="num grp-total">$110.43</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-08</td>
+          <td class="num grp-faire">$1,281.00</td>
+          <td class="num grp-faire">$1,016.12</td>
+          <td class="num grp-faire">$175.95</td>
+          <td class="num grp-faire strong">$311.17</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">112</td>
+          <td class="num grp-faire">$256.20</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$89.06</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$69.56</td>
+          <td class="num grp-shop">1</td>
+          <td class="num grp-shop">569</td>
+          <td class="num grp-shop">$89.06</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,105.18</td>
+          <td class="num grp-total accent">$380.73</td>
+          <td class="num grp-total">34.4%</td>
+          <td class="num grp-total">6</td>
+          <td class="num grp-total">$184.20</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-09</td>
+          <td class="num grp-faire">$760.00</td>
+          <td class="num grp-faire">$586.02</td>
+          <td class="num grp-faire">$104.39</td>
+          <td class="num grp-faire strong">$109.63</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">98</td>
+          <td class="num grp-faire">$253.33</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">120</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$586.02</td>
+          <td class="num grp-total accent">$109.63</td>
+          <td class="num grp-total">18.7%</td>
+          <td class="num grp-total">3</td>
+          <td class="num grp-total">$195.34</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-10</td>
+          <td class="num grp-faire">$1,468.00</td>
+          <td class="num grp-faire">$1,141.11</td>
+          <td class="num grp-faire">$201.63</td>
+          <td class="num grp-faire strong">$289.48</td>
+          <td class="num grp-faire">6</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">100</td>
+          <td class="num grp-faire">$244.67</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$42.49</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$27.54</td>
+          <td class="num grp-shop">1</td>
+          <td class="num grp-shop">131</td>
+          <td class="num grp-shop">$42.49</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,183.60</td>
+          <td class="num grp-total accent">$317.02</td>
+          <td class="num grp-total">26.8%</td>
+          <td class="num grp-total">7</td>
+          <td class="num grp-total">$169.09</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-11</td>
+          <td class="num grp-faire">$1,233.00</td>
+          <td class="num grp-faire">$931.12</td>
+          <td class="num grp-faire">$169.35</td>
+          <td class="num grp-faire strong">$241.77</td>
+          <td class="num grp-faire">7</td>
+          <td class="num grp-faire">6</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">89</td>
+          <td class="num grp-faire">$176.14</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">136</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$931.12</td>
+          <td class="num grp-total accent">$241.77</td>
+          <td class="num grp-total">26.0%</td>
+          <td class="num grp-total">7</td>
+          <td class="num grp-total">$133.02</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-12</td>
+          <td class="num grp-faire">$1,562.00</td>
+          <td class="num grp-faire">$1,105.29</td>
+          <td class="num grp-faire">$214.54</td>
+          <td class="num grp-faire strong">$208.25</td>
+          <td class="num grp-faire">6</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">107</td>
+          <td class="num grp-faire">$260.33</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$126.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$85.73</td>
+          <td class="num grp-shop">2</td>
+          <td class="num grp-shop">123</td>
+          <td class="num grp-shop">$63.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,231.29</td>
+          <td class="num grp-total accent">$293.98</td>
+          <td class="num grp-total">23.9%</td>
+          <td class="num grp-total">8</td>
+          <td class="num grp-total">$153.91</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-13</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire strong">$0.00</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">69</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">$143.96</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">773</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$0.00</td>
+          <td class="num grp-total accent">$0.00</td>
+          <td class="num grp-total">—</td>
+          <td class="num grp-total">0</td>
+          <td class="num grp-total">—</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-14</td>
+          <td class="num grp-faire">$1,020.00</td>
+          <td class="num grp-faire">$821.91</td>
+          <td class="num grp-faire">$140.10</td>
+          <td class="num grp-faire strong">$309.81</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">85</td>
+          <td class="num grp-faire">$510.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$28.10</td>
+          <td class="num grp-shop">$192.20</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-178.60</td>
+          <td class="num grp-shop">1</td>
+          <td class="num grp-shop">1,300</td>
+          <td class="num grp-shop">$28.10</td>
+          <td class="num grp-shop">0.15x</td>
+          <td class="num grp-total accent">$850.01</td>
+          <td class="num grp-total accent">$131.21</td>
+          <td class="num grp-total">15.4%</td>
+          <td class="num grp-total">3</td>
+          <td class="num grp-total">$283.34</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-15</td>
+          <td class="num grp-faire">$1,502.00</td>
+          <td class="num grp-faire">$1,146.97</td>
+          <td class="num grp-faire">$206.30</td>
+          <td class="num grp-faire strong">$255.67</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">87</td>
+          <td class="num grp-faire">$300.40</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$0.00</td>
+          <td class="num grp-shop">$241.20</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">0</td>
+          <td class="num grp-shop">1,325</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,146.97</td>
+          <td class="num grp-total accent">$255.67</td>
+          <td class="num grp-total">22.3%</td>
+          <td class="num grp-total">5</td>
+          <td class="num grp-total">$229.39</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-16</td>
+          <td class="num grp-faire">$1,622.00</td>
+          <td class="num grp-faire">$1,206.29</td>
+          <td class="num grp-faire">$222.78</td>
+          <td class="num grp-faire strong">$242.51</td>
+          <td class="num grp-faire">7</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">87</td>
+          <td class="num grp-faire">$231.71</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$247.99</td>
+          <td class="num grp-shop">$220.73</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-65.14</td>
+          <td class="num grp-shop">3</td>
+          <td class="num grp-shop">995</td>
+          <td class="num grp-shop">$82.66</td>
+          <td class="num grp-shop">1.12x</td>
+          <td class="num grp-total accent">$1,454.28</td>
+          <td class="num grp-total accent">$177.37</td>
+          <td class="num grp-total">12.2%</td>
+          <td class="num grp-total">10</td>
+          <td class="num grp-total">$145.43</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-17</td>
+          <td class="num grp-faire">$316.00</td>
+          <td class="num grp-faire">$240.42</td>
+          <td class="num grp-faire">$43.40</td>
+          <td class="num grp-faire strong">—</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">115</td>
+          <td class="num grp-faire">$158.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$248.76</td>
+          <td class="num grp-shop">$267.64</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-125.77</td>
+          <td class="num grp-shop">5</td>
+          <td class="num grp-shop">788</td>
+          <td class="num grp-shop">$49.75</td>
+          <td class="num grp-shop">0.50x</td>
+          <td class="num grp-total accent">$489.18</td>
+          <td class="num grp-total accent">$-125.77</td>
+          <td class="num grp-total">-25.7%</td>
+          <td class="num grp-total">7</td>
+          <td class="num grp-total">$69.88</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-18</td>
+          <td class="num grp-faire">$220.00</td>
+          <td class="num grp-faire">$165.45</td>
+          <td class="num grp-faire">$30.22</td>
+          <td class="num grp-faire strong">$46.23</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">100</td>
+          <td class="num grp-faire">$220.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$89.47</td>
+          <td class="num grp-shop">$256.49</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-203.96</td>
+          <td class="num grp-shop">2</td>
+          <td class="num grp-shop">696</td>
+          <td class="num grp-shop">$44.73</td>
+          <td class="num grp-shop">0.07x</td>
+          <td class="num grp-total accent">$254.92</td>
+          <td class="num grp-total accent">$-157.73</td>
+          <td class="num grp-total">-61.9%</td>
+          <td class="num grp-total">3</td>
+          <td class="num grp-total">$84.97</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-19</td>
+          <td class="num grp-faire">$220.00</td>
+          <td class="num grp-faire">$165.45</td>
+          <td class="num grp-faire">$30.22</td>
+          <td class="num grp-faire strong">$46.23</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">105</td>
+          <td class="num grp-faire">$220.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$158.00</td>
+          <td class="num grp-shop">$292.41</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-192.16</td>
+          <td class="num grp-shop">1</td>
+          <td class="num grp-shop">898</td>
+          <td class="num grp-shop">$158.00</td>
+          <td class="num grp-shop">0.54x</td>
+          <td class="num grp-total accent">$323.45</td>
+          <td class="num grp-total accent">$-145.93</td>
+          <td class="num grp-total">-45.1%</td>
+          <td class="num grp-total">2</td>
+          <td class="num grp-total">$161.72</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-20</td>
+          <td class="num grp-faire">$2,394.00</td>
+          <td class="num grp-faire">$1,757.60</td>
+          <td class="num grp-faire">$328.82</td>
+          <td class="num grp-faire strong">—</td>
+          <td class="num grp-faire">7</td>
+          <td class="num grp-faire">6</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">134</td>
+          <td class="num grp-faire">$342.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$150.97</td>
+          <td class="num grp-shop">$233.50</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-130.76</td>
+          <td class="num grp-shop">2</td>
+          <td class="num grp-shop">774</td>
+          <td class="num grp-shop">$75.48</td>
+          <td class="num grp-shop">0.34x</td>
+          <td class="num grp-total accent">$1,908.57</td>
+          <td class="num grp-total accent">$-130.76</td>
+          <td class="num grp-total">-6.9%</td>
+          <td class="num grp-total">9</td>
+          <td class="num grp-total">$212.06</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-21</td>
+          <td class="num grp-faire">$5,834.00</td>
+          <td class="num grp-faire">$4,104.17</td>
+          <td class="num grp-faire">$801.30</td>
+          <td class="num grp-faire strong">—</td>
+          <td class="num grp-faire">16</td>
+          <td class="num grp-faire">10</td>
+          <td class="num grp-faire">6</td>
+          <td class="num grp-faire">140</td>
+          <td class="num grp-faire">$364.62</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$300.58</td>
+          <td class="num grp-shop">$223.63</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">5</td>
+          <td class="num grp-shop">732</td>
+          <td class="num grp-shop">$60.12</td>
+          <td class="num grp-shop">1.17x</td>
+          <td class="num grp-total accent">$4,404.75</td>
+          <td class="num grp-total accent">$0.00</td>
+          <td class="num grp-total">0.0%</td>
+          <td class="num grp-total">21</td>
+          <td class="num grp-total">$209.75</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-22</td>
+          <td class="num grp-faire">$4,558.00</td>
+          <td class="num grp-faire">$3,178.76</td>
+          <td class="num grp-faire">$626.04</td>
+          <td class="num grp-faire strong">—</td>
+          <td class="num grp-faire">15</td>
+          <td class="num grp-faire">12</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">195</td>
+          <td class="num grp-faire">$303.87</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$228.48</td>
+          <td class="num grp-shop">$191.72</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-49.67</td>
+          <td class="num grp-shop">4</td>
+          <td class="num grp-shop">843</td>
+          <td class="num grp-shop">$57.12</td>
+          <td class="num grp-shop">1.19x</td>
+          <td class="num grp-total accent">$3,407.24</td>
+          <td class="num grp-total accent">$-49.67</td>
+          <td class="num grp-total">-1.5%</td>
+          <td class="num grp-total">19</td>
+          <td class="num grp-total">$179.33</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-23</td>
+          <td class="num grp-faire">$6,148.00</td>
+          <td class="num grp-faire">$4,303.33</td>
+          <td class="num grp-faire">$844.43</td>
+          <td class="num grp-faire strong">$552.90</td>
+          <td class="num grp-faire">23</td>
+          <td class="num grp-faire">19</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">236</td>
+          <td class="num grp-faire">$267.30</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$275.72</td>
+          <td class="num grp-shop">$245.00</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-61.59</td>
+          <td class="num grp-shop">5</td>
+          <td class="num grp-shop">371</td>
+          <td class="num grp-shop">$55.14</td>
+          <td class="num grp-shop">1.13x</td>
+          <td class="num grp-total accent">$4,579.05</td>
+          <td class="num grp-total accent">$491.31</td>
+          <td class="num grp-total">10.7%</td>
+          <td class="num grp-total">28</td>
+          <td class="num grp-total">$163.54</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-24</td>
+          <td class="num grp-faire">$3,660.00</td>
+          <td class="num grp-faire">$2,405.02</td>
+          <td class="num grp-faire">$502.70</td>
+          <td class="num grp-faire strong">$406.32</td>
+          <td class="num grp-faire">13</td>
+          <td class="num grp-faire">12</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">127</td>
+          <td class="num grp-faire">$281.54</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$1,169.41</td>
+          <td class="num grp-shop">$266.76</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">13</td>
+          <td class="num grp-shop">512</td>
+          <td class="num grp-shop">$89.95</td>
+          <td class="num grp-shop">4.07x</td>
+          <td class="num grp-total accent">$3,574.43</td>
+          <td class="num grp-total accent">$406.32</td>
+          <td class="num grp-total">11.4%</td>
+          <td class="num grp-total">26</td>
+          <td class="num grp-total">$137.48</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-25</td>
+          <td class="num grp-faire">$977.00</td>
+          <td class="num grp-faire">$765.15</td>
+          <td class="num grp-faire">$134.19</td>
+          <td class="num grp-faire strong">$158.96</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">69</td>
+          <td class="num grp-faire">$244.25</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$458.73</td>
+          <td class="num grp-shop">$220.63</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">7</td>
+          <td class="num grp-shop">454</td>
+          <td class="num grp-shop">$65.53</td>
+          <td class="num grp-shop">2.08x</td>
+          <td class="num grp-total accent">$1,223.88</td>
+          <td class="num grp-total accent">$158.96</td>
+          <td class="num grp-total">13.0%</td>
+          <td class="num grp-total">11</td>
+          <td class="num grp-total">$111.26</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-26</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire">$0.00</td>
+          <td class="num grp-faire strong">$0.00</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">66</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-shop">$782.99</td>
+          <td class="num grp-shop">$293.80</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">11</td>
+          <td class="num grp-shop">490</td>
+          <td class="num grp-shop">$71.18</td>
+          <td class="num grp-shop">2.10x</td>
+          <td class="num grp-total accent">$782.99</td>
+          <td class="num grp-total accent">$0.00</td>
+          <td class="num grp-total">0.0%</td>
+          <td class="num grp-total">11</td>
+          <td class="num grp-total">$71.18</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-27</td>
+          <td class="num grp-faire">$754.00</td>
+          <td class="num grp-faire">$540.49</td>
+          <td class="num grp-faire">$103.56</td>
+          <td class="num grp-faire strong">$119.43</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">71</td>
+          <td class="num grp-faire">$188.50</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$691.20</td>
+          <td class="num grp-shop">$278.80</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">10</td>
+          <td class="num grp-shop">560</td>
+          <td class="num grp-shop">$69.12</td>
+          <td class="num grp-shop">2.37x</td>
+          <td class="num grp-total accent">$1,231.69</td>
+          <td class="num grp-total accent">$119.43</td>
+          <td class="num grp-total">9.7%</td>
+          <td class="num grp-total">14</td>
+          <td class="num grp-total">$87.98</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-28</td>
+          <td class="num grp-faire">$1,814.00</td>
+          <td class="num grp-faire">$1,412.09</td>
+          <td class="num grp-faire">$249.15</td>
+          <td class="num grp-faire strong">$336.04</td>
+          <td class="num grp-faire">7</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">104</td>
+          <td class="num grp-faire">$259.14</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$686.98</td>
+          <td class="num grp-shop">$333.11</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">12</td>
+          <td class="num grp-shop">616</td>
+          <td class="num grp-shop">$57.25</td>
+          <td class="num grp-shop">1.96x</td>
+          <td class="num grp-total accent">$2,099.07</td>
+          <td class="num grp-total accent">$336.04</td>
+          <td class="num grp-total">16.0%</td>
+          <td class="num grp-total">19</td>
+          <td class="num grp-total">$110.48</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-29</td>
+          <td class="num grp-faire">$1,092.00</td>
+          <td class="num grp-faire">$804.56</td>
+          <td class="num grp-faire">$149.99</td>
+          <td class="num grp-faire strong">$169.57</td>
+          <td class="num grp-faire">7</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">86</td>
+          <td class="num grp-faire">$156.00</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$809.32</td>
+          <td class="num grp-shop">$264.09</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">11</td>
+          <td class="num grp-shop">888</td>
+          <td class="num grp-shop">$73.57</td>
+          <td class="num grp-shop">2.69x</td>
+          <td class="num grp-total accent">$1,613.88</td>
+          <td class="num grp-total accent">$169.57</td>
+          <td class="num grp-total">10.5%</td>
+          <td class="num grp-total">18</td>
+          <td class="num grp-total">$89.66</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-30</td>
+          <td class="num grp-faire">$505.00</td>
+          <td class="num grp-faire">$376.44</td>
+          <td class="num grp-faire">$69.36</td>
+          <td class="num grp-faire strong">$85.58</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">85</td>
+          <td class="num grp-faire">$252.50</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$634.39</td>
+          <td class="num grp-shop">$243.44</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">—</td>
+          <td class="num grp-shop">9</td>
+          <td class="num grp-shop">433</td>
+          <td class="num grp-shop">$70.49</td>
+          <td class="num grp-shop">2.31x</td>
+          <td class="num grp-total accent">$1,010.83</td>
+          <td class="num grp-total accent">$85.58</td>
+          <td class="num grp-total">8.5%</td>
+          <td class="num grp-total">11</td>
+          <td class="num grp-total">$91.89</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-07-31</td>
+          <td class="num grp-faire">$714.00</td>
+          <td class="num grp-faire">$506.83</td>
+          <td class="num grp-faire">$98.07</td>
+          <td class="num grp-faire strong">$96.76</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">70</td>
+          <td class="num grp-faire">$178.50</td>
+          <td class="num grp-faire">2.93x</td>
+          <td class="num grp-faire">13.7%</td>
+          <td class="num grp-shop">$1,110.46</td>
+          <td class="num grp-shop">$466.96</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$209.90</td>
+          <td class="num grp-shop">16</td>
+          <td class="num grp-shop">612</td>
+          <td class="num grp-shop">$69.40</td>
+          <td class="num grp-shop">2.04x</td>
+          <td class="num grp-total accent">$1,617.29</td>
+          <td class="num grp-total accent">$306.66</td>
+          <td class="num grp-total">19.0%</td>
+          <td class="num grp-total">20</td>
+          <td class="num grp-total">$80.86</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-01</td>
+          <td class="num grp-faire">$1,552.00</td>
+          <td class="num grp-faire">$1,220.39</td>
+          <td class="num grp-faire">$202.70</td>
+          <td class="num grp-faire strong">$292.19</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">77</td>
+          <td class="num grp-faire">$310.40</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$627.92</td>
+          <td class="num grp-shop">$297.12</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$71.11</td>
+          <td class="num grp-shop">9</td>
+          <td class="num grp-shop">466</td>
+          <td class="num grp-shop">$69.77</td>
+          <td class="num grp-shop">1.51x</td>
+          <td class="num grp-total accent">$1,848.31</td>
+          <td class="num grp-total accent">$363.30</td>
+          <td class="num grp-total">19.7%</td>
+          <td class="num grp-total">14</td>
+          <td class="num grp-total">$132.02</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-02</td>
+          <td class="num grp-faire">$352.00</td>
+          <td class="num grp-faire">$280.21</td>
+          <td class="num grp-faire">$45.97</td>
+          <td class="num grp-faire strong">$88.24</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">0</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">71</td>
+          <td class="num grp-faire">$176.00</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$654.58</td>
+          <td class="num grp-shop">$315.28</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$80.67</td>
+          <td class="num grp-shop">7</td>
+          <td class="num grp-shop">616</td>
+          <td class="num grp-shop">$93.51</td>
+          <td class="num grp-shop">2.08x</td>
+          <td class="num grp-total accent">$934.79</td>
+          <td class="num grp-total accent">$168.91</td>
+          <td class="num grp-total">18.1%</td>
+          <td class="num grp-total">9</td>
+          <td class="num grp-total">$103.87</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-03</td>
+          <td class="num grp-faire">$1,149.00</td>
+          <td class="num grp-faire">$918.46</td>
+          <td class="num grp-faire">$150.06</td>
+          <td class="num grp-faire strong">$216.40</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">64</td>
+          <td class="num grp-faire">$383.00</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$526.06</td>
+          <td class="num grp-shop">$245.92</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$59.32</td>
+          <td class="num grp-shop">7</td>
+          <td class="num grp-shop">489</td>
+          <td class="num grp-shop">$75.15</td>
+          <td class="num grp-shop">2.03x</td>
+          <td class="num grp-total accent">$1,444.52</td>
+          <td class="num grp-total accent">$275.72</td>
+          <td class="num grp-total">19.1%</td>
+          <td class="num grp-total">10</td>
+          <td class="num grp-total">$144.45</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-04</td>
+          <td class="num grp-faire">$1,791.00</td>
+          <td class="num grp-faire">$1,426.99</td>
+          <td class="num grp-faire">$233.91</td>
+          <td class="num grp-faire strong">$383.08</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">76</td>
+          <td class="num grp-faire">$358.20</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$603.64</td>
+          <td class="num grp-shop">$339.52</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$21.04</td>
+          <td class="num grp-shop">8</td>
+          <td class="num grp-shop">472</td>
+          <td class="num grp-shop">$75.45</td>
+          <td class="num grp-shop">1.14x</td>
+          <td class="num grp-total accent">$2,030.63</td>
+          <td class="num grp-total accent">$404.12</td>
+          <td class="num grp-total">19.9%</td>
+          <td class="num grp-total">13</td>
+          <td class="num grp-total">$156.20</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-05</td>
+          <td class="num grp-faire">$1,425.50</td>
+          <td class="num grp-faire">$1,176.18</td>
+          <td class="num grp-faire">$186.17</td>
+          <td class="num grp-faire strong">$377.01</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">94</td>
+          <td class="num grp-faire">$285.10</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$144.43</td>
+          <td class="num grp-shop">$238.08</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-159.20</td>
+          <td class="num grp-shop">3</td>
+          <td class="num grp-shop">703</td>
+          <td class="num grp-shop">$48.14</td>
+          <td class="num grp-shop">0.27x</td>
+          <td class="num grp-total accent">$1,320.61</td>
+          <td class="num grp-total accent">$217.81</td>
+          <td class="num grp-total">16.5%</td>
+          <td class="num grp-total">8</td>
+          <td class="num grp-total">$165.08</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-06</td>
+          <td class="num grp-faire">$959.00</td>
+          <td class="num grp-faire">$707.52</td>
+          <td class="num grp-faire">$125.25</td>
+          <td class="num grp-faire strong">$158.27</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">170</td>
+          <td class="num grp-faire">$191.80</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$302.81</td>
+          <td class="num grp-shop">$181.09</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-1.10</td>
+          <td class="num grp-shop">4</td>
+          <td class="num grp-shop">322</td>
+          <td class="num grp-shop">$75.70</td>
+          <td class="num grp-shop">1.67x</td>
+          <td class="num grp-total accent">$1,010.33</td>
+          <td class="num grp-total accent">$157.17</td>
+          <td class="num grp-total">15.6%</td>
+          <td class="num grp-total">9</td>
+          <td class="num grp-total">$112.26</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-07</td>
+          <td class="num grp-faire">$1,539.50</td>
+          <td class="num grp-faire">$1,106.02</td>
+          <td class="num grp-faire">$201.06</td>
+          <td class="num grp-faire strong">$235.46</td>
+          <td class="num grp-faire">9</td>
+          <td class="num grp-faire">8</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">195</td>
+          <td class="num grp-faire">$171.06</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$306.11</td>
+          <td class="num grp-shop">$195.91</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-10.07</td>
+          <td class="num grp-shop">3</td>
+          <td class="num grp-shop">286</td>
+          <td class="num grp-shop">$102.04</td>
+          <td class="num grp-shop">1.56x</td>
+          <td class="num grp-total accent">$1,412.13</td>
+          <td class="num grp-total accent">$225.39</td>
+          <td class="num grp-total">16.0%</td>
+          <td class="num grp-total">12</td>
+          <td class="num grp-total">$117.68</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-08</td>
+          <td class="num grp-faire">$444.00</td>
+          <td class="num grp-faire">$345.34</td>
+          <td class="num grp-faire">$57.99</td>
+          <td class="num grp-faire strong">$65.35</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">129</td>
+          <td class="num grp-faire">$222.00</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$319.07</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">$299.30</td>
+          <td class="num grp-shop strong">$-100.91</td>
+          <td class="num grp-shop">4</td>
+          <td class="num grp-shop">301</td>
+          <td class="num grp-shop">$79.77</td>
+          <td class="num grp-shop">1.07x</td>
+          <td class="num grp-total accent">$664.41</td>
+          <td class="num grp-total accent">$-35.56</td>
+          <td class="num grp-total">-5.4%</td>
+          <td class="num grp-total">6</td>
+          <td class="num grp-total">$110.73</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-09</td>
+          <td class="num grp-faire">$900.00</td>
+          <td class="num grp-faire">$685.73</td>
+          <td class="num grp-faire">$117.54</td>
+          <td class="num grp-faire strong">$124.19</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">58</td>
+          <td class="num grp-faire">$180.00</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$914.83</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">$491.55</td>
+          <td class="num grp-shop strong">$59.96</td>
+          <td class="num grp-shop">11</td>
+          <td class="num grp-shop">452</td>
+          <td class="num grp-shop">$83.17</td>
+          <td class="num grp-shop">1.52x</td>
+          <td class="num grp-total accent">$1,600.56</td>
+          <td class="num grp-total accent">$184.15</td>
+          <td class="num grp-total">11.5%</td>
+          <td class="num grp-total">16</td>
+          <td class="num grp-total">$100.03</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-10</td>
+          <td class="num grp-faire">$556.00</td>
+          <td class="num grp-faire">$436.95</td>
+          <td class="num grp-faire">$72.62</td>
+          <td class="num grp-faire strong">$100.33</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">87</td>
+          <td class="num grp-faire">$278.00</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$506.46</td>
+          <td class="num grp-shop">$276.85</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$16.06</td>
+          <td class="num grp-shop">7</td>
+          <td class="num grp-shop">326</td>
+          <td class="num grp-shop">$72.35</td>
+          <td class="num grp-shop">1.42x</td>
+          <td class="num grp-total accent">$943.41</td>
+          <td class="num grp-total accent">$116.39</td>
+          <td class="num grp-total">12.3%</td>
+          <td class="num grp-total">9</td>
+          <td class="num grp-total">$104.82</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-11</td>
+          <td class="num grp-faire">$1,096.00</td>
+          <td class="num grp-faire">$914.57</td>
+          <td class="num grp-faire">$143.14</td>
+          <td class="num grp-faire strong">$291.43</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">86</td>
+          <td class="num grp-faire">$274.00</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$929.49</td>
+          <td class="num grp-shop">$325.54</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$241.85</td>
+          <td class="num grp-shop">10</td>
+          <td class="num grp-shop">361</td>
+          <td class="num grp-shop">$92.95</td>
+          <td class="num grp-shop">2.08x</td>
+          <td class="num grp-total accent">$1,844.06</td>
+          <td class="num grp-total accent">$533.28</td>
+          <td class="num grp-total">28.9%</td>
+          <td class="num grp-total">14</td>
+          <td class="num grp-total">$131.72</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-12</td>
+          <td class="num grp-faire">$459.50</td>
+          <td class="num grp-faire">$348.60</td>
+          <td class="num grp-faire">$60.01</td>
+          <td class="num grp-faire strong">$51.09</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">108</td>
+          <td class="num grp-faire">$153.17</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$339.99</td>
+          <td class="num grp-shop">$336.58</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$-103.09</td>
+          <td class="num grp-shop">6</td>
+          <td class="num grp-shop">940</td>
+          <td class="num grp-shop">$56.66</td>
+          <td class="num grp-shop">1.01x</td>
+          <td class="num grp-total accent">$688.59</td>
+          <td class="num grp-total accent">$-52.00</td>
+          <td class="num grp-total">-7.6%</td>
+          <td class="num grp-total">9</td>
+          <td class="num grp-total">$76.51</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-13</td>
+          <td class="num grp-faire">$1,066.00</td>
+          <td class="num grp-faire">$788.68</td>
+          <td class="num grp-faire">$139.22</td>
+          <td class="num grp-faire strong">$189.46</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">103</td>
+          <td class="num grp-faire">$213.20</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$1,137.82</td>
+          <td class="num grp-shop">$325.89</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop strong">$377.86</td>
+          <td class="num grp-shop">16</td>
+          <td class="num grp-shop">2,014</td>
+          <td class="num grp-shop">$71.11</td>
+          <td class="num grp-shop">2.43x</td>
+          <td class="num grp-total accent">$1,926.50</td>
+          <td class="num grp-total accent">$567.32</td>
+          <td class="num grp-total">29.4%</td>
+          <td class="num grp-total">21</td>
+          <td class="num grp-total">$91.74</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-14</td>
+          <td class="num grp-faire">$1,978.00</td>
+          <td class="num grp-faire">$1,610.34</td>
+          <td class="num grp-faire">$258.33</td>
+          <td class="num grp-faire strong">$369.51</td>
+          <td class="num grp-faire">6</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">70</td>
+          <td class="num grp-faire">$329.67</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$1,043.66</td>
+          <td class="num grp-shop">$242.73</td>
+          <td class="num grp-shop">$12.62</td>
+          <td class="num grp-shop strong">$397.38</td>
+          <td class="num grp-shop">15</td>
+          <td class="num grp-shop">5,024</td>
+          <td class="num grp-shop">$69.58</td>
+          <td class="num grp-shop">3.80x</td>
+          <td class="num grp-total accent">$2,654.00</td>
+          <td class="num grp-total accent">$766.89</td>
+          <td class="num grp-total">28.9%</td>
+          <td class="num grp-total">21</td>
+          <td class="num grp-total">$126.38</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-15</td>
+          <td class="num grp-faire">$894.00</td>
+          <td class="num grp-faire">$689.98</td>
+          <td class="num grp-faire">$116.76</td>
+          <td class="num grp-faire strong">$180.72</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">233</td>
+          <td class="num grp-faire">$178.80</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$1,037.15</td>
+          <td class="num grp-shop">$287.12</td>
+          <td class="num grp-shop">$12.02</td>
+          <td class="num grp-shop strong">$326.56</td>
+          <td class="num grp-shop">13</td>
+          <td class="num grp-shop">3,937</td>
+          <td class="num grp-shop">$79.78</td>
+          <td class="num grp-shop">3.06x</td>
+          <td class="num grp-total accent">$1,727.13</td>
+          <td class="num grp-total accent">$507.28</td>
+          <td class="num grp-total">29.4%</td>
+          <td class="num grp-total">18</td>
+          <td class="num grp-total">$95.95</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-16</td>
+          <td class="num grp-faire">$1,366.00</td>
+          <td class="num grp-faire">$1,065.04</td>
+          <td class="num grp-faire">$178.40</td>
+          <td class="num grp-faire strong">$280.64</td>
+          <td class="num grp-faire">5</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">71</td>
+          <td class="num grp-faire">$273.20</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$566.78</td>
+          <td class="num grp-shop">$293.76</td>
+          <td class="num grp-shop">$54.21</td>
+          <td class="num grp-shop strong">$-11.56</td>
+          <td class="num grp-shop">7</td>
+          <td class="num grp-shop">537</td>
+          <td class="num grp-shop">$80.97</td>
+          <td class="num grp-shop">2.00x</td>
+          <td class="num grp-total accent">$1,631.82</td>
+          <td class="num grp-total accent">$269.08</td>
+          <td class="num grp-total">16.5%</td>
+          <td class="num grp-total">12</td>
+          <td class="num grp-total">$135.98</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-17</td>
+          <td class="num grp-faire">$634.00</td>
+          <td class="num grp-faire">$491.99</td>
+          <td class="num grp-faire">$82.80</td>
+          <td class="num grp-faire strong">$147.69</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">2</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">76</td>
+          <td class="num grp-faire">$211.33</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$170.73</td>
+          <td class="num grp-shop">$251.97</td>
+          <td class="num grp-shop">$71.24</td>
+          <td class="num grp-shop strong">$-213.14</td>
+          <td class="num grp-shop">3</td>
+          <td class="num grp-shop">539</td>
+          <td class="num grp-shop">$56.91</td>
+          <td class="num grp-shop">0.53x</td>
+          <td class="num grp-total accent">$662.72</td>
+          <td class="num grp-total accent">$-65.45</td>
+          <td class="num grp-total">-9.9%</td>
+          <td class="num grp-total">6</td>
+          <td class="num grp-total">$110.45</td>
+        </tr>
+        <tr class="">
+          <td class="c-date">2026-08-18</td>
+          <td class="num grp-faire">$1,226.50</td>
+          <td class="num grp-faire">$1,006.72</td>
+          <td class="num grp-faire">$160.18</td>
+          <td class="num grp-faire strong">$275.54</td>
+          <td class="num grp-faire">4</td>
+          <td class="num grp-faire">3</td>
+          <td class="num grp-faire">1</td>
+          <td class="num grp-faire">93</td>
+          <td class="num grp-faire">$306.62</td>
+          <td class="num grp-faire">2.48x</td>
+          <td class="num grp-faire">13.1%</td>
+          <td class="num grp-shop">$354.76</td>
+          <td class="num grp-shop">$211.81</td>
+          <td class="num grp-shop">$54.27</td>
+          <td class="num grp-shop strong">$3.92</td>
+          <td class="num grp-shop">3</td>
+          <td class="num grp-shop">576</td>
+          <td class="num grp-shop">$118.25</td>
+          <td class="num grp-shop">1.33x</td>
+          <td class="num grp-total accent">$1,361.48</td>
+          <td class="num grp-total accent">$279.46</td>
+          <td class="num grp-total">20.5%</td>
+          <td class="num grp-total">7</td>
+          <td class="num grp-total">$194.50</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        
+        <tr class="totals-row">
+          <td class="c-date">合计 49 天</td>
+          <td class="num grp-faire">$65,675.00</td>
+          <td class="num grp-faire">$48,757.00</td>
+          <td class="num grp-faire">$8,889.64</td>
+          <td class="num grp-faire strong">$9,000.32</td>
+          <td class="num grp-faire">260</td>
+          <td class="num grp-faire">175</td>
+          <td class="num grp-faire">70</td>
+          <td class="num grp-faire">4,983</td>
+          <td class="num grp-faire">$187.53</td>
+          <td class="num grp-faire">2.80x</td>
+          <td class="num grp-faire">18.2%</td>
+          <td class="num grp-shop">$19,083.68</td>
+          <td class="num grp-shop">$9,241.24</td>
+          <td class="num grp-shop">$995.21</td>
+          <td class="num grp-shop strong">$642.78</td>
+          <td class="num grp-shop">262</td>
+          <td class="num grp-shop">34,422</td>
+          <td class="num grp-shop">$72.84</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$67,840.68</td>
+          <td class="num grp-total accent">$9,643.10</td>
+          <td class="num grp-total">14.2%</td>
+          <td class="num grp-total">522</td>
+          <td class="num grp-total">$129.96</td>
+        </tr>
+        <tr class="totals-row avg-row">
+          <td class="c-date">日均</td>
+          <td class="num grp-faire">$1,340.31</td>
+          <td class="num grp-faire">$995.04</td>
+          <td class="num grp-faire">$181.42</td>
+          <td class="num grp-faire">$183.68</td>
+          <td class="num grp-faire">5.3</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">102</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-shop">$389.46</td>
+          <td class="num grp-shop">$188.60</td>
+          <td class="num grp-shop">$20.31</td>
+          <td class="num grp-shop">$13.12</td>
+          <td class="num grp-shop">5.3</td>
+          <td class="num grp-shop">702</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">$1,384.50</td>
+          <td class="num grp-total accent">$196.80</td>
+          <td class="num grp-total">—</td>
+          <td class="num grp-total">10.7</td>
+          <td class="num grp-total">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="notes">
+    <strong>口径与来源说明</strong>
+    <ul>
+      <li>历史数据（2026-07-01–2026-08-18）来自「shopify & faire产品详情.xlsx」里手工维护的 <code>Faire每日新品追踪</code> / <code>Shopify每日新品追踪</code> 两个 sheet，按其自带的公式口径重新计算：Faire 拣货费 $7/单、Shopify 拣货费 $1/单；Faire 广告费按月度报表 × 当日GMV占比分摊到每天；利润 = 净收入 − 产品成本 − 拣货费 − 广告花费。</li>
+      <li>Faire 的 CTR/CVR/ROAS/TACOS 是用同样的月度占比分摊法从月度广告报表估算到每日，不是 Faire 后台的每日真实值——月度真实值本身是准的，每日拆分是估算。</li>
+      <li>往后新的一天由 <code>scripts/sync_dashboard.py</code> 走各平台自己的 API 实时拉取（需要在 <code>scripts/config.env</code> 里配置 Shopify/Faire/Meta/Google 的凭证），不再依赖手工抄表。</li>
+      <li>此页面由 <code>scripts/render_dashboard.py</code> 从 <code>data/daily_metrics.jsonl</code> 生成；数据源脚本见 <code>scripts/import_backfill_xlsx.py</code>（一次性历史导入）。</li>
+    </ul>
+  </div>
+</section>

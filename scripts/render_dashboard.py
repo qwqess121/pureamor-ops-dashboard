@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(HERE, "..", "data")
 JSONL_PATH = os.path.join(DATA_DIR, "daily_metrics.jsonl")
-OUT_DIR = os.path.join(HERE, "..", "dashboard")
+OUT_DIR = os.path.join(HERE, "..", "docs")  # GitHub Pages serves from /docs on main
 OUT_PATH = os.path.join(OUT_DIR, "index.html")
 
 
@@ -139,6 +139,7 @@ def render(rows):
     faire_ok = [r for r in rows if r["faire"].get("status") == "ok"]
     shop_ok = [r for r in rows if r["shopify"].get("status") == "ok"]
 
+    faire_gmv = sum(r["faire"]["gmv"] or 0 for r in faire_ok)
     faire_revenue = sum(r["faire"]["actual_payout"] or 0 for r in faire_ok)
     faire_profit = sum(r["faire"]["profit"] or 0 for r in faire_ok if r["faire"]["profit"] is not None)
     faire_orders = sum(r["faire"]["orders"] or 0 for r in faire_ok)
@@ -150,7 +151,14 @@ def render(rows):
     shop_ad_spend = sum(r["shopify"]["ad_spend_total"] or 0 for r in shop_ok)
     shop_meta_spend = sum((r["shopify"]["ad_spend"] or {}).get("meta") or 0 for r in shop_ok)
     shop_google_spend = sum((r["shopify"]["ad_spend"] or {}).get("google") or 0 for r in shop_ok)
-    shop_meta_sales = sum((r["shopify"].get("ad_spend") or {}).get("meta") and 0 or 0 for r in shop_ok)  # placeholder unused
+    faire_new_retailers = sum(r["faire"].get("new_retailers") or 0 for r in faire_ok)
+    faire_repeat_retailers = sum(r["faire"].get("repeat_retailers") or 0 for r in faire_ok)
+    faire_page_views = sum(r["faire"].get("page_views") or 0 for r in faire_ok)
+    shop_visitors = sum(r["shopify"].get("visitors") or 0 for r in shop_ok)
+    faire_aov_avg = (faire_revenue / faire_orders) if faire_orders else None
+    shop_aov_avg = (shop_revenue / shop_orders) if shop_orders else None
+    faire_roas_avg = sum(r["faire"].get("ad_gmv_allocated") or 0 for r in faire_ok) / faire_ad_spend if faire_ad_spend else None
+    faire_tacos_avg = (faire_ad_spend / faire_revenue) if faire_revenue else None
 
     total_net_revenue = faire_revenue + shop_revenue
     total_profit = faire_profit + shop_profit
@@ -194,25 +202,93 @@ def render(rows):
         day_profit = (f["profit"] if f_ok and f["profit"] is not None else 0) + \
                      (s["profit"] if s_ok and s["profit"] is not None else 0)
         day_orders = (f["orders"] if f_ok else 0) + (s["orders"] if s_ok else 0)
+        day_margin = (day_profit / day_net) if day_net else None
+        day_aov = (day_net / day_orders) if day_orders else None
+        row_class = "" if (f_ok or s_ok) else "row-empty"
         table_rows.append(f"""
-        <tr>
+        <tr class="{row_class}">
           <td class="c-date">{r['date']}</td>
-          <td class="num">{fmt_money(f['gmv']) if f_ok else '—'}</td>
-          <td class="num">{fmt_money(f['actual_payout']) if f_ok else '—'}</td>
-          <td class="num">{fmt_money(f['ad_spend_allocated']) if f_ok else '—'}</td>
-          <td class="num strong">{fmt_money(f['profit']) if f_ok and f['profit'] is not None else '—'}</td>
-          <td class="num">{fmt_int(f['orders']) if f_ok else '—'}</td>
-          <td class="num">{fmt_int(f['page_views']) if f_ok else '—'}</td>
-          <td class="num">{fmt_money(s['gmv']) if s_ok else '—'}</td>
-          <td class="num">{fmt_money((s['ad_spend'] or {}).get('meta')) if s_ok else '—'}</td>
-          <td class="num">{fmt_money((s['ad_spend'] or {}).get('google')) if s_ok else '—'}</td>
-          <td class="num strong">{fmt_money(s['profit']) if s_ok and s['profit'] is not None else '—'}</td>
-          <td class="num">{fmt_int(s['orders']) if s_ok else '—'}</td>
-          <td class="num">{fmt_int(s['visitors']) if s_ok else '—'}</td>
-          <td class="num accent">{fmt_money(day_net)}</td>
-          <td class="num accent">{fmt_money(day_profit)}</td>
-          <td class="num">{fmt_int(day_orders)}</td>
+          <td class="num grp-faire">{fmt_money(f['gmv']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_money(f['actual_payout']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_money(f['ad_spend_allocated']) if f_ok else '—'}</td>
+          <td class="num grp-faire strong">{fmt_money(f['profit']) if f_ok and f['profit'] is not None else '—'}</td>
+          <td class="num grp-faire">{fmt_int(f['orders']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_int(f['new_retailers']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_int(f['repeat_retailers']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_int(f['page_views']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_money(f['aov']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_x(f['roas']) if f_ok else '—'}</td>
+          <td class="num grp-faire">{fmt_pct(f['tacos']) if f_ok else '—'}</td>
+          <td class="num grp-shop">{fmt_money(s['gmv']) if s_ok else '—'}</td>
+          <td class="num grp-shop">{fmt_money((s['ad_spend'] or {}).get('meta')) if s_ok else '—'}</td>
+          <td class="num grp-shop">{fmt_money((s['ad_spend'] or {}).get('google')) if s_ok else '—'}</td>
+          <td class="num grp-shop strong">{fmt_money(s['profit']) if s_ok and s['profit'] is not None else '—'}</td>
+          <td class="num grp-shop">{fmt_int(s['orders']) if s_ok else '—'}</td>
+          <td class="num grp-shop">{fmt_int(s['visitors']) if s_ok else '—'}</td>
+          <td class="num grp-shop">{fmt_money(s['aov']) if s_ok else '—'}</td>
+          <td class="num grp-shop">{fmt_x(s['roas']) if s_ok else '—'}</td>
+          <td class="num grp-total accent">{fmt_money(day_net)}</td>
+          <td class="num grp-total accent">{fmt_money(day_profit)}</td>
+          <td class="num grp-total">{fmt_pct(day_margin)}</td>
+          <td class="num grp-total">{fmt_int(day_orders)}</td>
+          <td class="num grp-total">{fmt_money(day_aov)}</td>
         </tr>""")
+
+    totals_row = f"""
+        <tr class="totals-row">
+          <td class="c-date">合计 {n_days} 天</td>
+          <td class="num grp-faire">{fmt_money(faire_gmv)}</td>
+          <td class="num grp-faire">{fmt_money(faire_revenue)}</td>
+          <td class="num grp-faire">{fmt_money(faire_ad_spend)}</td>
+          <td class="num grp-faire strong">{fmt_money(faire_profit)}</td>
+          <td class="num grp-faire">{fmt_int(faire_orders)}</td>
+          <td class="num grp-faire">{fmt_int(faire_new_retailers)}</td>
+          <td class="num grp-faire">{fmt_int(faire_repeat_retailers)}</td>
+          <td class="num grp-faire">{fmt_int(faire_page_views)}</td>
+          <td class="num grp-faire">{fmt_money(faire_aov_avg)}</td>
+          <td class="num grp-faire">{fmt_x(faire_roas_avg)}</td>
+          <td class="num grp-faire">{fmt_pct(faire_tacos_avg)}</td>
+          <td class="num grp-shop">{fmt_money(shop_revenue)}</td>
+          <td class="num grp-shop">{fmt_money(shop_meta_spend)}</td>
+          <td class="num grp-shop">{fmt_money(shop_google_spend)}</td>
+          <td class="num grp-shop strong">{fmt_money(shop_profit)}</td>
+          <td class="num grp-shop">{fmt_int(shop_orders)}</td>
+          <td class="num grp-shop">{fmt_int(shop_visitors)}</td>
+          <td class="num grp-shop">{fmt_money(shop_aov_avg)}</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">{fmt_money(total_net_revenue)}</td>
+          <td class="num grp-total accent">{fmt_money(total_profit)}</td>
+          <td class="num grp-total">{fmt_pct(total_profit/total_net_revenue if total_net_revenue else None)}</td>
+          <td class="num grp-total">{fmt_int(total_orders)}</td>
+          <td class="num grp-total">{fmt_money(total_aov)}</td>
+        </tr>
+        <tr class="totals-row avg-row">
+          <td class="c-date">日均</td>
+          <td class="num grp-faire">{fmt_money(faire_gmv/n_days)}</td>
+          <td class="num grp-faire">{fmt_money(faire_revenue/n_days)}</td>
+          <td class="num grp-faire">{fmt_money(faire_ad_spend/n_days)}</td>
+          <td class="num grp-faire">{fmt_money(faire_profit/n_days)}</td>
+          <td class="num grp-faire">{faire_orders/n_days:.1f}</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">{faire_page_views/n_days:.0f}</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-faire">—</td>
+          <td class="num grp-shop">{fmt_money(shop_revenue/n_days)}</td>
+          <td class="num grp-shop">{fmt_money(shop_meta_spend/n_days)}</td>
+          <td class="num grp-shop">{fmt_money(shop_google_spend/n_days)}</td>
+          <td class="num grp-shop">{fmt_money(shop_profit/n_days)}</td>
+          <td class="num grp-shop">{shop_orders/n_days:.1f}</td>
+          <td class="num grp-shop">{shop_visitors/n_days:.0f}</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-shop">—</td>
+          <td class="num grp-total accent">{fmt_money(total_net_revenue/n_days)}</td>
+          <td class="num grp-total accent">{fmt_money(daily_profit_avg)}</td>
+          <td class="num grp-total">—</td>
+          <td class="num grp-total">{total_orders/n_days:.1f}</td>
+          <td class="num grp-total">—</td>
+        </tr>"""
 
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -228,6 +304,7 @@ def render(rows):
     --ink: #232032; --ink-dim: #6b6577; --border: #e2dfd8;
     --accent: #9a3b49; --accent-soft: #f3e3e0;
     --accent-2: #3b6e63; --accent-2-soft: #e2ece8;
+    --shop: #b8862e; --shop-soft: #f5ecd9;
     --good: #3f8a5b; --good-soft: #e4f0e7;
     --pending: #9c9484; --pending-soft: #ece9e1;
     --critical: #b23a3a;
@@ -239,6 +316,7 @@ def render(rows):
       --ink: #ede9e3; --ink-dim: #a79fb0; --border: #383349;
       --accent: #e08d97; --accent-soft: #3a2429;
       --accent-2: #7fc0af; --accent-2-soft: #223330;
+      --shop: #d9ac5c; --shop-soft: #3a3121;
       --good: #6fbb8b; --good-soft: #1f3327;
       --pending: #b3a998; --pending-soft: #2e2b25;
       --critical: #e18787;
@@ -250,6 +328,7 @@ def render(rows):
     --ink: #ede9e3; --ink-dim: #a79fb0; --border: #383349;
     --accent: #e08d97; --accent-soft: #3a2429;
     --accent-2: #7fc0af; --accent-2-soft: #223330;
+    --shop: #d9ac5c; --shop-soft: #3a3121;
     --good: #6fbb8b; --good-soft: #1f3327;
     --pending: #b3a998; --pending-soft: #2e2b25;
     --critical: #e18787;
@@ -291,14 +370,27 @@ def render(rows):
   .hbar-values {{ grid-column: 2; font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }}
   .table-wrap {{ overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12.5px; }}
-  thead tr.group th {{ background: var(--surface-2); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-dim); text-align: center; padding: 6px; border-bottom: 1px solid var(--border); }}
+  thead tr.group th {{ font-size: 11.5px; font-weight: 600; letter-spacing: .03em; text-align: center; padding: 7px; border-bottom: 1px solid var(--border); }}
+  thead tr.group th.grp-head {{ color: white; }}
+  thead tr.group th.grp-head-faire {{ background: var(--accent-2); }}
+  thead tr.group th.grp-head-shop {{ background: var(--shop); }}
+  thead tr.group th.grp-head-total {{ background: var(--ink); }}
   thead tr.cols th {{ position: sticky; top: 0; background: var(--surface-2); text-align: right; font-weight: 500; color: var(--ink-dim); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }}
   thead tr.cols th.c-date {{ text-align: left; }}
+  thead tr.cols th.grp-faire {{ background: var(--accent-2-soft); }}
+  thead tr.cols th.grp-shop {{ background: var(--shop-soft); }}
+  thead tr.cols th.grp-total {{ background: var(--surface-2); }}
   td {{ padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }}
   td.c-date {{ font-family: "IBM Plex Mono", monospace; color: var(--ink-dim); }}
+  td.grp-faire {{ background: color-mix(in srgb, var(--accent-2-soft) 55%, transparent); }}
+  td.grp-shop {{ background: color-mix(in srgb, var(--shop-soft) 55%, transparent); }}
+  td.grp-total {{ background: color-mix(in srgb, var(--surface-2) 65%, transparent); }}
   td.strong {{ font-weight: 600; }}
   td.accent {{ font-weight: 600; color: var(--accent); }}
   tbody tr:last-child td {{ border-bottom: none; }}
+  tr.row-empty td {{ color: var(--pending); }}
+  tfoot .totals-row td {{ font-weight: 600; border-top: 2px solid var(--ink-dim); border-bottom: 1px solid var(--border); }}
+  tfoot .avg-row td {{ color: var(--ink-dim); font-weight: 400; font-style: italic; }}
   .notes {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: var(--shadow); font-size: 12.5px; color: var(--ink-dim); }}
   .notes ul {{ margin: 8px 0 0; padding-left: 18px; }}
   .notes li {{ margin-bottom: 4px; }}
@@ -370,18 +462,24 @@ def render(rows):
     <table>
       <thead>
         <tr class="group">
-          <th></th><th colspan="6">Faire（批发）</th><th colspan="6">Shopify（独立站）</th><th colspan="3">合计</th>
+          <th></th>
+          <th colspan="11" class="grp-head grp-head-faire">Faire（批发）</th>
+          <th colspan="8" class="grp-head grp-head-shop">Shopify（独立站）</th>
+          <th colspan="5" class="grp-head grp-head-total">合计（双平台）</th>
         </tr>
         <tr class="cols">
           <th class="c-date">日期</th>
-          <th>批发GMV</th><th>实际回款</th><th>广告(分摊)</th><th>毛利</th><th>订单</th><th>PV</th>
-          <th>销售额GMV</th><th>Meta广告</th><th>Google广告</th><th>毛利</th><th>订单</th><th>访客</th>
-          <th>净收入</th><th>毛利</th><th>订单</th>
+          <th class="grp-faire">批发GMV</th><th class="grp-faire">实际回款</th><th class="grp-faire">广告(分摊)</th><th class="grp-faire">毛利</th><th class="grp-faire">订单</th><th class="grp-faire">新客</th><th class="grp-faire">复购</th><th class="grp-faire">PV</th><th class="grp-faire">客单价</th><th class="grp-faire">ROAS</th><th class="grp-faire">TACOS</th>
+          <th class="grp-shop">销售额GMV</th><th class="grp-shop">Meta广告</th><th class="grp-shop">Google广告</th><th class="grp-shop">毛利</th><th class="grp-shop">订单</th><th class="grp-shop">访客</th><th class="grp-shop">客单价</th><th class="grp-shop">ROAS</th>
+          <th class="grp-total">净收入</th><th class="grp-total">毛利</th><th class="grp-total">毛利率</th><th class="grp-total">订单</th><th class="grp-total">客单价</th>
         </tr>
       </thead>
       <tbody>
         {''.join(table_rows)}
       </tbody>
+      <tfoot>
+        {totals_row}
+      </tfoot>
     </table>
   </div>
 </section>
