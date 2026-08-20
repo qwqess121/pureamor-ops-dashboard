@@ -1,0 +1,5 @@
+sku,unit_cost
+# Fallback SKU -> unit cost table, used only when Shopify's own variant cost
+# field (inventory_items.cost) is empty. One row per SKU, in USD.
+# Example:
+# ABC-123,4.50
