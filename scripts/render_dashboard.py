@@ -101,7 +101,7 @@ def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="v
     dates = [r["date"] for r in rows]
     n_ = len(rows)
 
-    pad_l, pad_r, pad_t, pad_b = 58, 58, 12, 24
+    pad_l, pad_r, pad_t, pad_b = 68, 68, 16, 32
     plot_top, plot_bottom = pad_t, height - pad_b
     plot_h = plot_bottom - plot_top
     plot_left, plot_right = pad_l, width - pad_r
@@ -164,12 +164,16 @@ def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="v
         )
 
     stride = max(1, round(n_ / 8))
-    x_labels = []
+    x_labels, last_i = [], None
     for i, d in enumerate(dates):
-        if i % stride != 0 and i != n_ - 1:
+        is_last = i == n_ - 1
+        if i % stride != 0 and not is_last:
             continue
+        if is_last and last_i is not None and (i - last_i) * step < 28:
+            continue
+        last_i = i
         x = plot_left + i * step if n_ > 1 else plot_left + plot_w / 2
-        x_labels.append(f'<text x="{x:.1f}" y="{plot_bottom+16:.1f}" class="axis-label" text-anchor="middle">{d[5:]}</text>')
+        x_labels.append(f'<text x="{x:.1f}" y="{plot_bottom+18:.1f}" class="axis-label" text-anchor="middle">{d[5:]}</text>')
 
     return f'''<svg viewBox="0 0 {width} {height}" class="trend-svg" preserveAspectRatio="xMidYMid meet" role="img">
   {''.join(grid)}
@@ -236,6 +240,7 @@ def render(rows):
         bar_key=lambda r: n(r["faire"].get("actual_payout")) + n(r["shopify"].get("gmv")),
         line_key=lambda r: (r["faire"].get("profit") or 0) + (r["shopify"].get("profit") or 0)
                             if r["faire"].get("status") == "ok" or r["shopify"].get("status") == "ok" else None,
+        width=1200, height=320,
     )
 
     contribution_html = "\n".join([
@@ -419,18 +424,17 @@ def render(rows):
   .kpi .value {{ font-family: "IBM Plex Mono", monospace; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }}
   .kpi .value.accent {{ color: var(--accent); }}
   .kpi .foot {{ font-size: 11.5px; color: var(--ink-dim); margin-top: 4px; }}
-  .two-col {{ display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }}
-  @media (max-width: 900px) {{ .two-col {{ grid-template-columns: 1fr; }} }}
   .chart-card, .panel-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); transition: box-shadow .18s ease, border-color .18s ease; }}
+  .chart-card-wide {{ padding: 20px 24px; }}
   .chart-card:hover, .panel-card:hover {{ box-shadow: 0 4px 10px rgba(35,32,50,0.08), 0 14px 30px rgba(35,32,50,0.10); border-color: var(--accent-2); }}
   .chart-card .title, .panel-card .title {{ font-size: 13px; font-weight: 500; margin-bottom: 10px; }}
-  .trend-svg {{ width: 100%; height: 220px; display: block; }}
+  .trend-svg {{ width: 100%; height: 380px; display: block; }}
   .axis-line {{ stroke: var(--border); stroke-width: 1; }}
   .grid-line {{ stroke: var(--border); stroke-width: 1; opacity: 0.6; }}
-  .axis-label {{ font-family: "IBM Plex Mono", monospace; font-size: 10.5px; fill: var(--ink-dim); }}
-  .axis-label-bar {{ fill: var(--accent-2); font-weight: 500; }}
-  .axis-label-line {{ fill: var(--accent); font-weight: 500; }}
-  .bar-value-label {{ font-family: "IBM Plex Mono", monospace; font-size: 8px; fill: var(--accent-2); opacity: 0; animation: dotFadeIn .3s ease-out forwards; pointer-events: none; }}
+  .axis-label {{ font-family: "IBM Plex Mono", monospace; font-size: 13px; fill: var(--ink-dim); }}
+  .axis-label-bar {{ fill: var(--accent-2); font-weight: 600; }}
+  .axis-label-line {{ fill: var(--accent); font-weight: 600; }}
+  .bar-value-label {{ font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500; fill: var(--accent-2); opacity: 0; animation: dotFadeIn .3s ease-out forwards; pointer-events: none; }}
   .trend-line {{ fill: none; stroke-width: 2; }}
   .bar-anim {{ transform-box: fill-box; transform-origin: bottom; animation: barGrow .5s cubic-bezier(.2,.8,.3,1) backwards; transition: opacity .15s ease; cursor: default; }}
   .bar-anim:hover {{ opacity: 1; }}
@@ -526,8 +530,8 @@ def render(rows):
   </div>
 </section>
 
-<section class="two-col">
-  <div class="chart-card">
+<section>
+  <div class="chart-card chart-card-wide">
     <div class="title">每日净收入构成（柱）与合计毛利（线）</div>
     {combo_svg}
     <div class="legend">
@@ -535,6 +539,9 @@ def render(rows):
       <span><span class="dot" style="background:var(--accent)"></span>合计毛利</span>
     </div>
   </div>
+</section>
+
+<section>
   <div class="panel-card">
     <div class="title">两平台贡献对比</div>
     {contribution_html}
