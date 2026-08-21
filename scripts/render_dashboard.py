@@ -90,6 +90,7 @@ def line_and_fill(pts, base_y, width, pad=6):
 def combo_chart_svg(rows, bar_key, line_key, width=740, height=200, bar_color="var(--accent-2)", line_color="var(--accent)"):
     bar_vals = [bar_key(r) for r in rows]
     line_vals = [line_key(r) for r in rows]
+    dates = [r["date"] for r in rows]
     pad = 8
     max_bar = max([v for v in bar_vals if v is not None] or [1])
     n_ = len(rows)
@@ -97,23 +98,33 @@ def combo_chart_svg(rows, bar_key, line_key, width=740, height=200, bar_color="v
     step = (width - 2 * pad) / max(n_ - 1, 1) if n_ > 1 else 0
 
     bars = []
+    bar_i = 0
     for i, v in enumerate(bar_vals):
         if v is None:
             continue
         x = pad + i * step - bw / 2 if n_ > 1 else width / 2 - bw / 2
         h = (height - 2 * pad) * 0.72 * (v / max_bar)
         y = height - pad - h
-        bars.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{h:.1f}" rx="2" fill="{bar_color}" opacity="0.75" />')
+        delay = bar_i * 0.012
+        bar_i += 1
+        bars.append(
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{h:.1f}" rx="2" '
+            f'fill="{bar_color}" opacity="0.75" class="bar-anim" '
+            f'style="animation-delay:{delay:.3f}s"><title>{dates[i]}: {fmt_money(v)}</title></rect>'
+        )
 
     line_pts, _, base_y = sparkline(line_vals, width, height, pad)
     path, _ = line_and_fill(line_pts, base_y, width, pad)
-    dots = "\n".join(f'<circle cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="2.4" fill="{line_color}" />'
-                      for p in line_pts if p is not None)
+    dots = "\n".join(
+        f'<circle cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="2.6" fill="{line_color}" class="dot-anim" '
+        f'style="animation-delay:{1.1 + i*0.012:.3f}s"><title>{dates[i]}: {fmt_money(line_vals[i])}</title></circle>'
+        for i, p in enumerate(line_pts) if p is not None
+    )
 
     return f'''<svg viewBox="0 0 {width} {height}" class="trend-svg" preserveAspectRatio="none" role="img">
   <line x1="{pad}" y1="{height-pad}" x2="{width-pad}" y2="{height-pad}" class="axis-line" />
   {''.join(bars)}
-  <path d="{path}" class="trend-line" style="stroke:{line_color}" />
+  <path d="{path}" class="trend-line line-anim" style="stroke:{line_color}" />
   {dots}
 </svg>'''
 
@@ -125,8 +136,8 @@ def hbar(label, left_val, right_val, left_color="var(--accent)", right_color="va
     return f'''<div class="hbar-row">
       <div class="hbar-label">{label}</div>
       <div class="hbar-track">
-        <div class="hbar-seg" style="width:{lp:.1f}%;background:{left_color}"></div>
-        <div class="hbar-seg" style="width:{rp:.1f}%;background:{right_color}"></div>
+        <div class="hbar-seg grow-w" data-w="{lp:.1f}" style="background:{left_color}" title="{left_label}"></div>
+        <div class="hbar-seg grow-w" data-w="{rp:.1f}" style="background:{right_color}" title="{right_label}"></div>
       </div>
       <div class="hbar-values"><span style="color:{left_color}">{left_label}</span> · <span style="color:{right_color}">{right_label}</span></div>
     </div>'''
@@ -349,24 +360,38 @@ def render(rows):
   section {{ margin-bottom: 32px; }}
   .section-title {{ font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-dim); margin: 0 0 12px; }}
   .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }}
-  .kpi {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }}
+  .kpi {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }}
+  .kpi:hover {{ transform: translateY(-3px); box-shadow: 0 4px 10px rgba(35,32,50,0.08), 0 14px 30px rgba(35,32,50,0.10); border-color: var(--accent); }}
   .kpi .label {{ font-size: 12px; color: var(--ink-dim); margin-bottom: 6px; }}
   .kpi .value {{ font-family: "IBM Plex Mono", monospace; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }}
   .kpi .value.accent {{ color: var(--accent); }}
   .kpi .foot {{ font-size: 11.5px; color: var(--ink-dim); margin-top: 4px; }}
   .two-col {{ display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }}
   @media (max-width: 900px) {{ .two-col {{ grid-template-columns: 1fr; }} }}
-  .chart-card, .panel-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); }}
+  .chart-card, .panel-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); transition: box-shadow .18s ease, border-color .18s ease; }}
+  .chart-card:hover, .panel-card:hover {{ box-shadow: 0 4px 10px rgba(35,32,50,0.08), 0 14px 30px rgba(35,32,50,0.10); border-color: var(--accent-2); }}
   .chart-card .title, .panel-card .title {{ font-size: 13px; font-weight: 500; margin-bottom: 10px; }}
   .trend-svg {{ width: 100%; height: 200px; display: block; }}
   .axis-line {{ stroke: var(--border); stroke-width: 1; }}
   .trend-line {{ fill: none; stroke-width: 2; }}
+  .bar-anim {{ transform-box: fill-box; transform-origin: bottom; animation: barGrow .5s cubic-bezier(.2,.8,.3,1) backwards; transition: opacity .15s ease; cursor: default; }}
+  .bar-anim:hover {{ opacity: 1; }}
+  .line-anim {{ stroke-dasharray: 2200; stroke-dashoffset: 2200; animation: drawLine 1.4s ease-out .1s forwards; }}
+  .dot-anim {{ opacity: 0; animation: dotFadeIn .3s ease-out forwards; cursor: default; }}
+  .dot-anim:hover {{ r: 4.5; }}
+  @keyframes barGrow {{ from {{ transform: scaleY(0); }} to {{ transform: scaleY(1); }} }}
+  @keyframes drawLine {{ to {{ stroke-dashoffset: 0; }} }}
+  @keyframes dotFadeIn {{ to {{ opacity: 1; }} }}
+  @media (prefers-reduced-motion: reduce) {{
+    .bar-anim, .line-anim, .dot-anim, .grow-w {{ animation: none !important; transition: none !important; }}
+  }}
   .legend {{ display: flex; gap: 16px; font-size: 11.5px; color: var(--ink-dim); margin-top: 8px; }}
   .legend span.dot {{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }}
   .hbar-row {{ display: grid; grid-template-columns: 70px 1fr; row-gap: 2px; align-items: center; margin-bottom: 14px; }}
   .hbar-label {{ font-size: 12.5px; color: var(--ink-dim); }}
   .hbar-track {{ display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--surface-2); }}
-  .hbar-seg {{ height: 100%; }}
+  .hbar-seg {{ height: 100%; width: 0; transition: width 1s cubic-bezier(.2,.8,.2,1), filter .15s ease; }}
+  .hbar-seg:hover {{ filter: brightness(1.12); }}
   .hbar-values {{ grid-column: 2; font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }}
   .table-wrap {{ overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }}
   table {{ width: 100%; border-collapse: collapse; font-size: 12.5px; }}
@@ -380,7 +405,7 @@ def render(rows):
   thead tr.cols th.grp-faire {{ background: var(--accent-2-soft); }}
   thead tr.cols th.grp-shop {{ background: var(--shop-soft); }}
   thead tr.cols th.grp-total {{ background: var(--surface-2); }}
-  td {{ padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }}
+  td {{ padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; transition: background-color .12s ease; }}
   td.c-date {{ font-family: "IBM Plex Mono", monospace; color: var(--ink-dim); }}
   td.grp-faire {{ background: color-mix(in srgb, var(--accent-2-soft) 55%, transparent); }}
   td.grp-shop {{ background: color-mix(in srgb, var(--shop-soft) 55%, transparent); }}
@@ -388,6 +413,8 @@ def render(rows):
   td.strong {{ font-weight: 600; }}
   td.accent {{ font-weight: 600; color: var(--accent); }}
   tbody tr:last-child td {{ border-bottom: none; }}
+  tbody tr:hover td {{ background: var(--accent-soft); }}
+  tbody tr:hover td.grp-shop {{ background: var(--shop-soft); }}
   tr.row-empty td {{ color: var(--pending); }}
   tfoot .totals-row td {{ font-weight: 600; border-top: 2px solid var(--ink-dim); border-bottom: 1px solid var(--border); }}
   tfoot .avg-row td {{ color: var(--ink-dim); font-weight: 400; font-style: italic; }}
@@ -495,6 +522,14 @@ def render(rows):
     </ul>
   </div>
 </section>
+
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {{
+    document.querySelectorAll(".grow-w").forEach(el => {{
+      el.style.width = el.dataset.w + "%";
+    }});
+  }}));
+</script>
 """
 
 
