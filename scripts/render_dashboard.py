@@ -117,7 +117,7 @@ def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="v
     bw = plot_w / n_ * 0.62
 
     def bar_y(v):
-        return plot_bottom - plot_h * 0.78 * (v / max_bar)
+        return plot_bottom - plot_h * 0.58 * (v / max_bar)
 
     def line_y(v):
         return plot_top + plot_h * (1 - (v - line_lo) / line_span)
@@ -126,15 +126,20 @@ def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="v
     for i, v in enumerate(bar_vals):
         if v is None:
             continue
-        x = plot_left + i * step - bw / 2 if n_ > 1 else plot_left + plot_w / 2 - bw / 2
+        cx = plot_left + i * step if n_ > 1 else plot_left + plot_w / 2
+        x = cx - bw / 2
         y = bar_y(v)
         h = plot_bottom - y
         delay = bar_i * 0.012
         bar_i += 1
+        label_y = y - 4
         bars.append(
             f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{h:.1f}" rx="2" '
             f'fill="{bar_color}" opacity="0.75" class="bar-anim" '
             f'style="animation-delay:{delay:.3f}s"><title>{dates[i]}: {fmt_money(v)}</title></rect>'
+            f'<text x="{cx:.1f}" y="{label_y:.1f}" transform="rotate(-90 {cx:.1f} {label_y:.1f})" '
+            f'text-anchor="start" class="bar-value-label" style="animation-delay:{delay+0.3:.3f}s">'
+            f'{fmt_money_short(v)}</text>'
         )
 
     pts = [None if v is None else (plot_left + i * step, line_y(v)) for i, v in enumerate(line_vals)]
@@ -425,6 +430,7 @@ def render(rows):
   .axis-label {{ font-family: "IBM Plex Mono", monospace; font-size: 10.5px; fill: var(--ink-dim); }}
   .axis-label-bar {{ fill: var(--accent-2); font-weight: 500; }}
   .axis-label-line {{ fill: var(--accent); font-weight: 500; }}
+  .bar-value-label {{ font-family: "IBM Plex Mono", monospace; font-size: 8px; fill: var(--accent-2); opacity: 0; animation: dotFadeIn .3s ease-out forwards; pointer-events: none; }}
   .trend-line {{ fill: none; stroke-width: 2; }}
   .bar-anim {{ transform-box: fill-box; transform-origin: bottom; animation: barGrow .5s cubic-bezier(.2,.8,.3,1) backwards; transition: opacity .15s ease; cursor: default; }}
   .bar-anim:hover {{ opacity: 1; }}
@@ -436,6 +442,7 @@ def render(rows):
   @keyframes dotFadeIn {{ to {{ opacity: 1; }} }}
   @media (prefers-reduced-motion: reduce) {{
     .bar-anim, .line-anim, .dot-anim, .grow-w {{ animation: none !important; transition: none !important; }}
+    .bar-value-label, .dot-anim {{ opacity: 1 !important; }}
   }}
   .legend {{ display: flex; gap: 16px; font-size: 11.5px; color: var(--ink-dim); margin-top: 8px; }}
   .legend span.dot {{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }}
