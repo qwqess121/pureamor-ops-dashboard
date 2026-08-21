@@ -39,6 +39,14 @@ def fmt_money(v):
     return f"${v:,.2f}" if v is not None else "—"
 
 
+def fmt_money_short(v):
+    if v is None:
+        return "—"
+    sign = "-" if v < 0 else ""
+    av = abs(v)
+    return f"{sign}${av/1000:.1f}k" if av >= 1000 else f"{sign}${av:.0f}"
+
+
 def fmt_int(v):
     return f"{v:,.0f}" if v is not None else "—"
 
@@ -87,24 +95,40 @@ def line_and_fill(pts, base_y, width, pad=6):
     return path.strip(), fill
 
 
-def combo_chart_svg(rows, bar_key, line_key, width=740, height=200, bar_color="var(--accent-2)", line_color="var(--accent)"):
+def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="var(--accent-2)", line_color="var(--accent)"):
     bar_vals = [bar_key(r) for r in rows]
     line_vals = [line_key(r) for r in rows]
     dates = [r["date"] for r in rows]
-    pad = 8
-    max_bar = max([v for v in bar_vals if v is not None] or [1])
     n_ = len(rows)
-    bw = (width - 2 * pad) / n_ * 0.62
-    step = (width - 2 * pad) / max(n_ - 1, 1) if n_ > 1 else 0
 
-    bars = []
-    bar_i = 0
+    pad_l, pad_r, pad_t, pad_b = 58, 58, 12, 24
+    plot_top, plot_bottom = pad_t, height - pad_b
+    plot_h = plot_bottom - plot_top
+    plot_left, plot_right = pad_l, width - pad_r
+    plot_w = plot_right - plot_left
+
+    max_bar = max([v for v in bar_vals if v is not None] or [1]) * 1.08
+    line_defined = [v for v in line_vals if v is not None]
+    line_lo = min(0, min(line_defined)) if line_defined else 0
+    line_hi = max(line_defined) if line_defined else 1
+    line_span = (line_hi - line_lo) or 1
+
+    step = plot_w / max(n_ - 1, 1) if n_ > 1 else 0
+    bw = plot_w / n_ * 0.62
+
+    def bar_y(v):
+        return plot_bottom - plot_h * 0.78 * (v / max_bar)
+
+    def line_y(v):
+        return plot_top + plot_h * (1 - (v - line_lo) / line_span)
+
+    bars, bar_i = [], 0
     for i, v in enumerate(bar_vals):
         if v is None:
             continue
-        x = pad + i * step - bw / 2 if n_ > 1 else width / 2 - bw / 2
-        h = (height - 2 * pad) * 0.72 * (v / max_bar)
-        y = height - pad - h
+        x = plot_left + i * step - bw / 2 if n_ > 1 else plot_left + plot_w / 2 - bw / 2
+        y = bar_y(v)
+        h = plot_bottom - y
         delay = bar_i * 0.012
         bar_i += 1
         bars.append(
@@ -113,19 +137,43 @@ def combo_chart_svg(rows, bar_key, line_key, width=740, height=200, bar_color="v
             f'style="animation-delay:{delay:.3f}s"><title>{dates[i]}: {fmt_money(v)}</title></rect>'
         )
 
-    line_pts, _, base_y = sparkline(line_vals, width, height, pad)
-    path, _ = line_and_fill(line_pts, base_y, width, pad)
+    pts = [None if v is None else (plot_left + i * step, line_y(v)) for i, v in enumerate(line_vals)]
+    path, fill_path = line_and_fill(pts, plot_bottom, width, 0)
     dots = "\n".join(
         f'<circle cx="{p[0]:.1f}" cy="{p[1]:.1f}" r="2.6" fill="{line_color}" class="dot-anim" '
         f'style="animation-delay:{1.1 + i*0.012:.3f}s"><title>{dates[i]}: {fmt_money(line_vals[i])}</title></circle>'
-        for i, p in enumerate(line_pts) if p is not None
+        for i, p in enumerate(pts) if p is not None
     )
 
-    return f'''<svg viewBox="0 0 {width} {height}" class="trend-svg" preserveAspectRatio="none" role="img">
-  <line x1="{pad}" y1="{height-pad}" x2="{width-pad}" y2="{height-pad}" class="axis-line" />
+    # y-axis gridlines: 4 ticks tied to the bar scale, with the matching line-scale
+    # value labeled on the right so both series read off the same horizontal lines
+    grid = []
+    for frac in (0, 1/3, 2/3, 1):
+        y = plot_bottom - plot_h * 0.78 * frac
+        bar_v = max_bar * frac
+        line_v = line_lo + line_span * (1 - (y - plot_top) / plot_h)
+        grid.append(
+            f'<line x1="{plot_left:.1f}" y1="{y:.1f}" x2="{plot_right:.1f}" y2="{y:.1f}" class="grid-line" />'
+            f'<text x="{plot_left-8:.1f}" y="{y:.1f}" class="axis-label axis-label-bar" text-anchor="end" dominant-baseline="middle">{fmt_money_short(bar_v)}</text>'
+            f'<text x="{plot_right+8:.1f}" y="{y:.1f}" class="axis-label axis-label-line" text-anchor="start" dominant-baseline="middle">{fmt_money_short(line_v)}</text>'
+        )
+
+    stride = max(1, round(n_ / 8))
+    x_labels = []
+    for i, d in enumerate(dates):
+        if i % stride != 0 and i != n_ - 1:
+            continue
+        x = plot_left + i * step if n_ > 1 else plot_left + plot_w / 2
+        x_labels.append(f'<text x="{x:.1f}" y="{plot_bottom+16:.1f}" class="axis-label" text-anchor="middle">{d[5:]}</text>')
+
+    return f'''<svg viewBox="0 0 {width} {height}" class="trend-svg" preserveAspectRatio="xMidYMid meet" role="img">
+  {''.join(grid)}
+  <text x="{plot_left-8:.1f}" y="{plot_top-2:.1f}" class="axis-label axis-label-bar" text-anchor="end">净收入</text>
+  <text x="{plot_right+8:.1f}" y="{plot_top-2:.1f}" class="axis-label axis-label-line" text-anchor="start">毛利</text>
   {''.join(bars)}
   <path d="{path}" class="trend-line line-anim" style="stroke:{line_color}" />
   {dots}
+  {''.join(x_labels)}
 </svg>'''
 
 
@@ -371,8 +419,12 @@ def render(rows):
   .chart-card, .panel-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; box-shadow: var(--shadow); transition: box-shadow .18s ease, border-color .18s ease; }}
   .chart-card:hover, .panel-card:hover {{ box-shadow: 0 4px 10px rgba(35,32,50,0.08), 0 14px 30px rgba(35,32,50,0.10); border-color: var(--accent-2); }}
   .chart-card .title, .panel-card .title {{ font-size: 13px; font-weight: 500; margin-bottom: 10px; }}
-  .trend-svg {{ width: 100%; height: 200px; display: block; }}
+  .trend-svg {{ width: 100%; height: 220px; display: block; }}
   .axis-line {{ stroke: var(--border); stroke-width: 1; }}
+  .grid-line {{ stroke: var(--border); stroke-width: 1; opacity: 0.6; }}
+  .axis-label {{ font-family: "IBM Plex Mono", monospace; font-size: 10.5px; fill: var(--ink-dim); }}
+  .axis-label-bar {{ fill: var(--accent-2); font-weight: 500; }}
+  .axis-label-line {{ fill: var(--accent); font-weight: 500; }}
   .trend-line {{ fill: none; stroke-width: 2; }}
   .bar-anim {{ transform-box: fill-box; transform-origin: bottom; animation: barGrow .5s cubic-bezier(.2,.8,.3,1) backwards; transition: opacity .15s ease; cursor: default; }}
   .bar-anim:hover {{ opacity: 1; }}
