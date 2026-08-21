@@ -10,6 +10,7 @@ Pure stdlib string templating — no build step, no JS framework.
 """
 
 import json
+import math
 import os
 from datetime import datetime, timezone
 
@@ -122,6 +123,10 @@ def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="v
     def line_y(v):
         return plot_top + plot_h * (1 - (v - line_lo) / line_span)
 
+    # horizontal labels need real width, so only label every Nth bar to avoid
+    # them overlapping each other -- how many slots a "$1.4k"-sized label needs
+    label_stride = max(1, math.ceil(34 / max(step, 1)))
+
     bars, bar_i = [], 0
     for i, v in enumerate(bar_vals):
         if v is None:
@@ -132,14 +137,16 @@ def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="v
         h = plot_bottom - y
         delay = bar_i * 0.012
         bar_i += 1
-        label_y = y - 4
+        label = ""
+        if i % label_stride == 0:
+            label = (f'<text x="{cx:.1f}" y="{y-6:.1f}" text-anchor="middle" '
+                      f'class="bar-value-label" style="animation-delay:{delay+0.3:.3f}s">'
+                      f'{fmt_money_short(v)}</text>')
         bars.append(
             f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{h:.1f}" rx="2" '
             f'fill="{bar_color}" opacity="0.75" class="bar-anim" '
             f'style="animation-delay:{delay:.3f}s"><title>{dates[i]}: {fmt_money(v)}</title></rect>'
-            f'<text x="{cx:.1f}" y="{label_y:.1f}" transform="rotate(-90 {cx:.1f} {label_y:.1f})" '
-            f'text-anchor="start" class="bar-value-label" style="animation-delay:{delay+0.3:.3f}s">'
-            f'{fmt_money_short(v)}</text>'
+            f'{label}'
         )
 
     pts = [None if v is None else (plot_left + i * step, line_y(v)) for i, v in enumerate(line_vals)]
@@ -154,7 +161,7 @@ def combo_chart_svg(rows, bar_key, line_key, width=760, height=240, bar_color="v
     # value labeled on the right so both series read off the same horizontal lines
     grid = []
     for frac in (0, 1/3, 2/3, 1):
-        y = plot_bottom - plot_h * 0.78 * frac
+        y = plot_bottom - plot_h * 0.58 * frac
         bar_v = max_bar * frac
         line_v = line_lo + line_span * (1 - (y - plot_top) / plot_h)
         grid.append(
@@ -438,7 +445,7 @@ def render(rows):
   .trend-line {{ fill: none; stroke-width: 2; }}
   .bar-anim {{ transform-box: fill-box; transform-origin: bottom; animation: barGrow .5s cubic-bezier(.2,.8,.3,1) backwards; transition: opacity .15s ease; cursor: default; }}
   .bar-anim:hover {{ opacity: 1; }}
-  .line-anim {{ stroke-dasharray: 2200; stroke-dashoffset: 2200; animation: drawLine 1.4s ease-out .1s forwards; }}
+  .line-anim {{ stroke-dasharray: 12000; stroke-dashoffset: 12000; animation: drawLine 1.4s ease-out .1s forwards; }}
   .dot-anim {{ opacity: 0; animation: dotFadeIn .3s ease-out forwards; cursor: default; }}
   .dot-anim:hover {{ r: 4.5; }}
   @keyframes barGrow {{ from {{ transform: scaleY(0); }} to {{ transform: scaleY(1); }} }}
